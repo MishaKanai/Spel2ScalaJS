@@ -2,6 +2,7 @@ package mishakanai.spel2scalajs
 import scala.scalajs.js
 import scala.collection.immutable.Nil
 import js.JSConverters._
+import scala.collection.mutable
 
 class Evaluator(rootContext: JSContext) {
   def evaluateFunction(
@@ -85,17 +86,20 @@ class Evaluator(rootContext: JSContext) {
     }
   }
   // we build a context stack
-  var stack = rootContext :: Nil // new mutable.Stack[js.Dictionary[Any]]();
+  var stack = new mutable.Stack[JSContext]()
+  stack.push(rootContext)
 
   def getVariableValueInContext(variable: String): Option[JSContext] = {
-    stack
+    stack.toList
       .foldLeft[Option[JSContext]](None)((prev, curr) => {
         if (prev.isDefined) prev
         else if (variable == "this") Some(curr)
         else
           curr match {
-            case JSCDictionary(value) => value.get(variable)
-            case _                    => None
+            case JSCDictionary(value) => {
+              return value.get(variable)
+            }
+            case _ => None
           }
       })
   }
@@ -139,7 +143,7 @@ class Evaluator(rootContext: JSContext) {
             null
           } else {
             throw new RuntimeException(
-              s"Null Pointer Exception: variable $propertyName not found"
+              s"Null Pointer Exception: Property $propertyName not found in context $stack"
             )
           }
 
@@ -233,6 +237,11 @@ class Evaluator(rootContext: JSContext) {
               case JSCFunction(fun) => {
                 evaluateFunction(fun, evaluatedArguments)
               }
+              case ScalaFunction0(function) => {
+                DynamicJsParser.parseDynamicJs(
+                  function().asInstanceOf[js.Dynamic]
+                )
+              }
               case x => throw new RuntimeException(s"$x is not a function")
             }
           }
@@ -257,17 +266,18 @@ class Evaluator(rootContext: JSContext) {
         throw new RuntimeException("Elvis Not Implemented")
       }
       case CompoundExpression(expressionComponents) => {
-        val savedStack = stack;
         // TODO
         // implement safe-navigation here
         val res = expressionComponents.foldLeft(rootContext)(
           (currContext, expressionSymbol) => {
             val res = evaluate(expressionSymbol)
-            stack = res :: stack
+            stack.push(res);
             res;
           }
         )
-        stack = savedStack
+        expressionComponents.foreach((c) => {
+          stack.pop
+        })
         res;
       }
       case BooleanLiteral(value) => JSCBoolean(value)

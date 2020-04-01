@@ -2,7 +2,7 @@ package mishakanai.spel2scalajs
 import utest._
 import scala.scalajs.js
 
-object MainTest extends TestSuite {
+object ParseTest extends TestSuite {
   def tests = Tests {
     test("Parsing: foo.?[#this == \"z\"]") {
       val result = SpelParser.apply("foo.?[#this == \"z\"]")

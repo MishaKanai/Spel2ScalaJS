@@ -1,27 +1,47 @@
 package mishakanai.spel2scalajs
+import utest._
+import scala.scalajs.js
 
-object MainTest extends TestSuite {
+object EvalTest extends TestSuite {
   def tests = Tests {
     test(
       "Can evaluate a javascript defined function with dynamic number of arguments"
     ) {
+      val dynamic = js.Dictionary(
+        "foo" -> js.eval("(...args) => args.map(x => x * 2)"),
+        "bar" -> 1
+      )
+      val result = SpelEval.evaluate(
+        "foo(bar, 2, 3)",
+        dynamic.asInstanceOf[js.Dynamic]
+      )
+      assert(result.asInstanceOf[js.Array[Any]].toSeq == List(2, 4, 6))
+    }
 
-      val result = SpelParser
-        .apply("foo.bar.baz(1, 2, 3)")
-        .map(
-          new Evaluator(
-            DynamicJsParser.parseDynamicJs(
-              js.eval("""
-                {
-                    foo: { bar: { baz: (...args) => args.map(x => x * 2) }}
-                }
-                """)
+    test(
+      "Can evaluate a scala defined method"
+    ) {
+
+      def scalaFn = () => js.Array(1, 2, 3)
+      val result = SpelEval.evaluate(
+        "foo.bar.baz()",
+        js.Dictionary(
+            "foo" -> js.Dictionary(
+              "bar" -> js.Dictionary(
+                "baz" -> scalaFn
+              )
             )
-          ).evaluate
-        )
+          )
+          .asInstanceOf[js.Dynamic]
+      )
 
       assert(
-        result == List(2, 4, 6)
+        result.asInstanceOf[js.Array[Any]].toSeq
+          == Seq(
+            1,
+            2,
+            3
+          )
       )
     }
   }

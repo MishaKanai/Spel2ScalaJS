@@ -9,11 +9,17 @@ import js.typeOf
 
 object SpelEval {
   @JSExportTopLevel("evaluate")
-  def evaluate(input: String, context: js.Dynamic) = {
-    SpelParser
+  def evaluate(input: String, context: js.Dynamic): js.Dynamic = {
+    val result = SpelParser
       .apply(input)
-      .map(
-        new Evaluator(DynamicJsParser.parseDynamicJs(context)).evaluate
-      )
+      .map(p => {
+        val ctxt = DynamicJsParser.parseDynamicJs(context)
+        new Evaluator(ctxt).evaluate(p)
+      })
+    if (result.isDefined)
+      return DynamicJsParser.backToDynamic(result.get).asInstanceOf[js.Dynamic]
+    else {
+      throw new RuntimeException("Failed to Parse Spel expression")
+    }
   }
 }
