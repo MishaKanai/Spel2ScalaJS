@@ -10,6 +10,12 @@ testFrameworks += new TestFramework("utest.runner.Framework")
 
 scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
 
+artifactPath in (Compile, fastOptJS) :=
+  (crossTarget in (Compile)).value / "spel2scalajs.mjs"
+
+artifactPath in (Test, fastOptJS) :=
+  (crossTarget in (Test)).value / "spel2scalajs-test.mjs"
+
 jsEnv := {
   new org.scalajs.jsenv.nodejs.NodeJSEnv(
     org.scalajs.jsenv.nodejs.NodeJSEnv
