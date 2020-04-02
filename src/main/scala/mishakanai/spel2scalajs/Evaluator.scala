@@ -220,7 +220,7 @@ class Evaluator(rootContext: JSContext) {
         }
       }
       case NumberLiteral(value) => JSCFloat(value)
-      case NullLiteral()        => null
+      case NullLiteral()        => JSCNull()
       case MethodReference(nullSafeNavigation, methodName, args) => {
         throw new RuntimeException("Method Reference Not Implemented")
       }
@@ -267,7 +267,8 @@ class Evaluator(rootContext: JSContext) {
         throw new RuntimeException("Indexer Not Implemented")
       }
       case Elvis(expression, ifFalse) => {
-        throw new RuntimeException("Elvis Not Implemented")
+        val expr = evaluate(expression)
+        if (expr == JSCNull()) evaluate(ifFalse) else expr
       }
       case CompoundExpression(expressionComponents) => {
         // TODO

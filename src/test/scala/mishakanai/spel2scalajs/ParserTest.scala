@@ -4,6 +4,14 @@ import scala.scalajs.js
 
 object ParseTest extends TestSuite {
   def tests = Tests {
+    test("null") {
+      val result = SpelParser.apply("null ?: 1")
+      assert(
+        result == Some(
+          Elvis(NullLiteral(), NumberLiteral(1))
+        )
+      )
+    }
     test("Inline lists") {
       val result = SpelParser.apply("{1,2,3,4}")
       assert(

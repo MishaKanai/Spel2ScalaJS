@@ -9,6 +9,14 @@ object EvalTest extends TestSuite {
         .evaluate("{1, 2, 3}", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
       assert(result.asInstanceOf[js.Array[Any]].toSeq == List(1, 2, 3))
     }
+    test("Can evaluate Elvis") {
+      val result1 = SpelEval
+        .evaluate("1 ?: 2", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
+      assert(result1.asInstanceOf[Float] == 1)
+      val result2 = SpelEval
+        .evaluate("null ?: 2", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
+      assert(result2.asInstanceOf[Float] == 2)
+    }
 
     test(
       "Can evaluate a javascript defined function with dynamic number of arguments"
