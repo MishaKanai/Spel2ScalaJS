@@ -254,10 +254,14 @@ class Evaluator(rootContext: JSContext) {
         }
       }
       case InlineMap(elements) => {
-        throw new RuntimeException("Inline Map Not Implemented")
+        JSCDictionary(
+          elements.transform((k, expressionSymbol) =>
+            evaluate(expressionSymbol)
+          )
+        )
       }
       case InlineList(elements) => {
-        throw new RuntimeException("Inline List Not Implemented")
+        JSCArray(elements.map(evaluate).toJSArray)
       }
       case Indexer(nullSafeNavigation, index) => {
         throw new RuntimeException("Indexer Not Implemented")
