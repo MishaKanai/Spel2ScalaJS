@@ -11,12 +11,18 @@ import js.typeOf
 @JSExportTopLevel("Spel2ScalaJs")
 object SpelEval {
   @JSExport
-  def evaluate(input: String, context: js.Dynamic): js.Dynamic = {
+  def evaluate(
+      input: String,
+      context: js.Dynamic,
+      functionsAndVariables: js.Dynamic =
+        js.Dictionary().asInstanceOf[js.Dynamic]
+  ): js.Dynamic = {
     val result = SpelParser
       .apply(input)
       .map(p => {
         val ctxt = DynamicJsParser.parseDynamicJs(context)
-        new Evaluator(ctxt).evaluate(p)
+        val fnsAndVars = DynamicJsParser.parseDynamicJs(functionsAndVariables)
+        new Evaluator(ctxt, fnsAndVars).evaluate(p)
       })
     if (result.isDefined)
       return DynamicJsParser.backToDynamic(result.get).asInstanceOf[js.Dynamic]

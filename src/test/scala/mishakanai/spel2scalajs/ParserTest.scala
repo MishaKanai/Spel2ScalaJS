@@ -70,7 +70,7 @@ object ParseTest extends TestSuite {
         Ternary(
           OpOr(
             OpAnd(
-              FunctionReference(false, "foo", List()),
+              MethodReference(false, "foo", List()),
               OpGT(
                 CompoundExpression(
                   List(

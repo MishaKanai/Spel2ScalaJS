@@ -107,7 +107,7 @@ object SpelParser extends JavaTokenParsers {
   def startNode: Parser[ExpressionSymbol] =
     // I don't get why 'indexer' counts as a possible start node...
     // TODO add inline list/map
-    parenExpr | literal | notNullSafeMethodOrProperty | functionOrVar | inlineList | inlineMap // | projection | selection //  | indexer // | constructor
+    parenExpr | literal | functionOrVar | notNullSafeMethodOrProperty | inlineList | inlineMap // | projection | selection //  | indexer // | constructor
 
   //----------------------------------------------------------------------------
 
@@ -128,7 +128,7 @@ object SpelParser extends JavaTokenParsers {
     ident ~ opt("(" ~> repsep(expression, ",") <~ ")") ^^ {
       // ExpressionSymbol ~ Option[List[ExpressionSymbol]]
       case id ~ Some(list) => {
-        FunctionReference(true, id, list)
+        MethodReference(true, id, list)
       }
       case id ~ None => {
         PropertyReference(true, id)
@@ -138,7 +138,7 @@ object SpelParser extends JavaTokenParsers {
     ident ~ opt("(" ~> repsep(expression, ",") <~ ")") ^^ {
       // ExpressionSymbol ~ Option[List[ExpressionSymbol]]
       case id ~ Some(list) => {
-        FunctionReference(false, id, list)
+        MethodReference(false, id, list)
       }
       case id ~ None => {
         PropertyReference(false, id)
@@ -156,8 +156,8 @@ object SpelParser extends JavaTokenParsers {
 
   def functionOrVar: Parser[ExpressionSymbol] = function | variable
   def function: Parser[ExpressionSymbol] =
-    "#" ~ ident ~ "(" ~ repsep(expression, ",") ~ ")" ^^ {
-      case "#" ~ id ~ "(" ~ list ~ ")" => FunctionReference(false, id, list)
+    "#" ~ ident ~ "(" ~ repsep(expression, ",") <~ ")" ^^ {
+      case "#" ~ id ~ "(" ~ list => FunctionReference(false, id, list)
     }
   def variable: Parser[ExpressionSymbol] = "#" ~> ident ^^ { id =>
     VariableReference(id)

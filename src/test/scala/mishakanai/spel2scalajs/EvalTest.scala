@@ -19,7 +19,7 @@ object EvalTest extends TestSuite {
     }
 
     test(
-      "Can evaluate a javascript defined function with dynamic number of arguments"
+      "Can evaluate a javascript defined method with dynamic number of arguments"
     ) {
       val dynamic = js.Dictionary(
         "foo" -> js.eval("(...args) => args.map(x => x * 2)"),
@@ -35,15 +35,12 @@ object EvalTest extends TestSuite {
     test(
       "Can evaluate a scala defined method"
     ) {
-
       def scalaFn = () => js.Array(1, 2, 3)
       val result = SpelEval.evaluate(
-        "foo.bar.baz()",
+        "foo.baz()",
         js.Dictionary(
             "foo" -> js.Dictionary(
-              "bar" -> js.Dictionary(
-                "baz" -> scalaFn
-              )
+              "baz" -> scalaFn
             )
           )
           .asInstanceOf[js.Dynamic]
@@ -56,6 +53,58 @@ object EvalTest extends TestSuite {
             2,
             3
           )
+      )
+    }
+
+    test(
+      "Can evaluate functions and variables"
+    ) {
+      def scalaCtxtFn = () => "calledFromContext"
+      val ctxt = js
+        .Dictionary(
+          "foo" -> scalaCtxtFn,
+          "f" -> "helloFromContext"
+        )
+        .asInstanceOf[js.Dynamic]
+
+      def scalaVarsFn = () => "calledFromVariables"
+      val variables = js
+        .Dictionary(
+          "foo" -> scalaVarsFn,
+          "f" -> "helloFromVars"
+        )
+        .asInstanceOf[js.Dynamic]
+      val result1a = SpelEval.evaluate(
+        "#foo()",
+        ctxt,
+        variables
+      )
+      assert(
+        result1a.asInstanceOf[String] == scalaVarsFn()
+      )
+      val result1b = SpelEval.evaluate(
+        "#f",
+        ctxt,
+        variables
+      )
+      assert(
+        result1b.asInstanceOf[String] == "helloFromVars"
+      )
+      val result2a = SpelEval.evaluate(
+        "foo()",
+        ctxt,
+        variables
+      )
+      assert(
+        result2a.asInstanceOf[String] == scalaCtxtFn()
+      )
+      val result2b = SpelEval.evaluate(
+        "f",
+        ctxt,
+        variables
+      )
+      assert(
+        result2b.asInstanceOf[String] == "helloFromContext"
       )
     }
   }

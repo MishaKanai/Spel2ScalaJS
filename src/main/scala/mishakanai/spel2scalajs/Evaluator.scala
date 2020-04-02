@@ -4,7 +4,10 @@ import scala.collection.immutable.Nil
 import js.JSConverters._
 import scala.collection.mutable
 
-class Evaluator(rootContext: JSContext) {
+class Evaluator(
+    rootContext: JSContext,
+    functionsAndVariables: JSContext
+) {
   def evaluateFunction(
       fn: js.Dynamic,
       evaluatedArguments: List[js.Any]
@@ -89,7 +92,7 @@ class Evaluator(rootContext: JSContext) {
   var stack = new mutable.Stack[JSContext]()
   stack.push(rootContext)
 
-  def getVariableValueInContext(variable: String): Option[JSContext] = {
+  def getPropertyValueInContext(variable: String): Option[JSContext] = {
     stack.toList
       .foldLeft[Option[JSContext]](None)((prev, curr) => {
         if (prev.isDefined) prev
@@ -103,6 +106,15 @@ class Evaluator(rootContext: JSContext) {
           }
       })
   }
+  def getValueInProvidedFuncsAndVars = (variableName: String) => {
+    if (variableName == "#this") Some(stack.head)
+    else if (variableName == "#root") Some(stack.last)
+    else
+      functionsAndVariables match {
+        case JSCDictionary(value) => value.get(variableName)
+        case _                    => None
+      }
+  }
 
   def evaluate(
       ast: ExpressionSymbol
@@ -115,15 +127,13 @@ class Evaluator(rootContext: JSContext) {
           case _                 => evaluate(ifFalse)
         }
       case VariableReference(variableName) => {
-        val valueInContext: Option[JSContext] = getVariableValueInContext(
-          variableName
-        );
-        if (valueInContext.isEmpty) {
+        val valueInFuncsAndVars = getValueInProvidedFuncsAndVars(variableName)
+        if (valueInFuncsAndVars.isEmpty) {
           throw new RuntimeException(
             s"Null Pointer Exception: variable $variableName not found"
           )
         }
-        return valueInContext.get
+        return valueInFuncsAndVars.get
       }
       case SelectionFirst(nullSafeNavigation, expression) => {
         throw new RuntimeException("SelectionFirst Not Implemented")
@@ -135,7 +145,7 @@ class Evaluator(rootContext: JSContext) {
         throw new RuntimeException("Selection Not Implemented")
       }
       case PropertyReference(nullSafeNavigation, propertyName) => {
-        val valueInContext: Option[JSContext] = getVariableValueInContext(
+        val valueInContext: Option[JSContext] = getPropertyValueInContext(
           propertyName
         );
         if (valueInContext.isEmpty) {
@@ -222,16 +232,43 @@ class Evaluator(rootContext: JSContext) {
       case NumberLiteral(value) => JSCFloat(value)
       case NullLiteral()        => JSCNull()
       case MethodReference(nullSafeNavigation, methodName, args) => {
-        throw new RuntimeException("Method Reference Not Implemented")
-      }
-      case FunctionReference(nullSafeNavigation, functionName, args) => {
-        val valueInContext: Option[JSContext] = getVariableValueInContext(
-          functionName
+        val valueInContext: Option[JSContext] = getPropertyValueInContext(
+          methodName
         )
         val evaluatedArguments = args
           .map(evaluate)
           .map(DynamicJsParser.backToDynamic)
         valueInContext match {
+          case Some(value) => {
+            value match {
+              case JSCFunction(fun) => {
+                evaluateFunction(fun, evaluatedArguments)
+              }
+              case ScalaFunction0(function) => {
+                DynamicJsParser.parseDynamicJs(
+                  function().asInstanceOf[js.Dynamic]
+                )
+              }
+              case x => throw new RuntimeException(s"$x is not a function")
+            }
+          }
+          case None => {
+            if (!nullSafeNavigation) {
+              throw new RuntimeException(s"Method $methodName Not found")
+            }
+            JSCNull()
+          }
+        }
+      }
+      case FunctionReference(nullSafeNavigation, functionName, args) => {
+        val maybeProvidedFunction: Option[JSContext] =
+          getValueInProvidedFuncsAndVars(
+            functionName
+          )
+        val evaluatedArguments = args
+          .map(evaluate)
+          .map(DynamicJsParser.backToDynamic)
+        maybeProvidedFunction match {
           case Some(value) => {
             value match {
               case JSCFunction(fun) => {
