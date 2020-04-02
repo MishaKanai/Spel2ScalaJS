@@ -107,7 +107,7 @@ object SpelParser extends JavaTokenParsers {
   def startNode: Parser[ExpressionSymbol] =
     // I don't get why 'indexer' counts as a possible start node...
     // TODO add inline list/map
-    parenExpr | literal | notNullSafeMethodOrProperty | functionOrVar // | projection | selection //  | indexer // | constructor
+    parenExpr | literal | notNullSafeMethodOrProperty | functionOrVar | inlineList | inlineMap // | projection | selection //  | indexer // | constructor
 
   //----------------------------------------------------------------------------
 
@@ -229,15 +229,27 @@ object SpelParser extends JavaTokenParsers {
   /*
     START: INLINE LIST OR MAP
    */
-  // TODO
+  def inlineList: Parser[ExpressionSymbol] =
+    "{" ~> repsep(expression, ",") <~ "}" ^^ { items => InlineList(items) }
+
+  def inlineMap: Parser[ExpressionSymbol] =
+    "{" ~> repsep(ident ~ ":" ~ expression, ",") <~ "}" ^^ { list =>
+      InlineMap(
+        list
+          .map(kv => {
+            kv match {
+              case k ~ ":" ~ v => (k, v)
+            }
+          })
+          .toMap
+      )
+    }
   /*
     END: INLINE LIST OR MAP
    */
   //----------------------------------------------------------------------------
 
-  def parenExpr: Parser[ExpressionSymbol] = "(" ~ expression ~ ")" ^^ {
-    case "(" ~ expr ~ ")" => expr
-  }
+  def parenExpr: Parser[ExpressionSymbol] = "(" ~> expression <~ ")"
 
   //----------------------------------------------------------------------------
   // def constructor: Parser[ExpressionSymbol] = string

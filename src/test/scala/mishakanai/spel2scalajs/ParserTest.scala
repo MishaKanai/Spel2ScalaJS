@@ -4,6 +4,37 @@ import scala.scalajs.js
 
 object ParseTest extends TestSuite {
   def tests = Tests {
+    test("Inline lists") {
+      val result = SpelParser.apply("{1,2,3,4}")
+      assert(
+        result == Some(
+          InlineList(
+            List(
+              NumberLiteral(1),
+              NumberLiteral(2),
+              NumberLiteral(3),
+              NumberLiteral(4)
+            )
+          )
+        )
+      )
+    }
+    test("Inline Map") {
+      val result = SpelParser.apply("{foo: 1 + 1, bar: 3 }")
+      assert(
+        result == Some(
+          InlineMap(
+            Map(
+              "foo" -> OpPlus(
+                NumberLiteral(1),
+                NumberLiteral(1)
+              ),
+              "bar" -> NumberLiteral(3)
+            )
+          )
+        )
+      )
+    }
     test("Parsing: foo.?[#this == \"z\"]") {
       val result = SpelParser.apply("foo.?[#this == \"z\"]")
       val expected = Some(
