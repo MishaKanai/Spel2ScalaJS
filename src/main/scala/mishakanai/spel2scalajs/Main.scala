@@ -1,14 +1,16 @@
 package mishakanai.spel2scalajs
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSExportTopLevel
+import scala.scalajs.js.annotation.JSExport
 import scala.util.parsing.combinator._
 import scala.scalajs.js.JSON
 import scala.scalajs.js.Dictionary
 import js.JSConverters._
 import js.typeOf
 
+@JSExportTopLevel("Spel2ScalaJs")
 object SpelEval {
-  @JSExportTopLevel("evaluate")
+  @JSExport
   def evaluate(input: String, context: js.Dynamic): js.Dynamic = {
     val result = SpelParser
       .apply(input)

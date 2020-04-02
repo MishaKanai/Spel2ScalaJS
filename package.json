@@ -1,0 +1,20 @@
+{
+  "name": "spel2scalajs",
+  "version": "0.0.7",
+  "description": "Spring Expression Language evaluator in scala.js",
+  "main": "target/scala-2.13/spel2scalajs-opt.js",
+  "types": "main.d.ts",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MishaKanai/Spel2ScalaJS.git"
+  },
+  "author": "Misha Kanai",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MishaKanai/Spel2ScalaJS/issues"
+  },
+  "homepage": "https://github.com/MishaKanai/Spel2ScalaJS#readme"
+}
