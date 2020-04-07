@@ -301,7 +301,25 @@ class Evaluator(
         JSCArray(elements.map(evaluate).toJSArray)
       }
       case Indexer(nullSafeNavigation, index) => {
-        throw new RuntimeException("Indexer Not Implemented")
+        (stack.head, index) match {
+          case (JSCString(value), NumberLiteral(ix)) =>
+            JSCString(value.charAt(ix.toInt).toString);
+          case (JSCArray(value), NumberLiteral(ix)) =>
+            value(ix.toInt);
+          case (JSCDictionary(value), StringLiteral(key)) => {
+            value.get(key) match {
+              case Some(value) => value
+              case None =>
+                throw new RuntimeException(
+                  s"key $key not found in dictionary $value"
+                );
+            }
+          }
+          case (x, y) =>
+            throw new RuntimeException(
+              s"Not supported: indexing into $x with $y"
+            );
+        }
       }
       case Elvis(expression, ifFalse) => {
         val expr = evaluate(expression)

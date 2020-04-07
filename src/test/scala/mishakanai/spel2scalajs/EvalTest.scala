@@ -4,6 +4,14 @@ import scala.scalajs.js
 
 object EvalTest extends TestSuite {
   def tests = Tests {
+    test("Can use indexes into arrays") {
+      val result = SpelEval
+        .evaluate(
+          "{1, 2, {3, 4}}[2][0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result == 3)
+    }
     test("Can evaluate an inline list") {
       val result = SpelEval
         .evaluate("{1, 2, 3}", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
