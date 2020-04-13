@@ -8,18 +8,21 @@ libraryDependencies += "org.scala-lang.modules" %%% "scala-parser-combinators" %
 libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.4" % "test"
 testFrameworks += new TestFramework("utest.runner.Framework")
 
-scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
+scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 
-artifactPath in (Compile, fastOptJS) :=
-  (crossTarget in (Compile)).value / "spel2scalajs.mjs"
+// below is for ES module output
 
-artifactPath in (Test, fastOptJS) :=
-  (crossTarget in (Test)).value / "spel2scalajs-test.mjs"
+// scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
+// artifactPath in (Compile, fastOptJS) :=
+//   (crossTarget in (Compile)).value / "spel2scalajs.mjs"
 
-jsEnv := {
-  new org.scalajs.jsenv.nodejs.NodeJSEnv(
-    org.scalajs.jsenv.nodejs.NodeJSEnv
-      .Config()
-      .withArgs(List("--experimental-modules"))
-  )
-}
+// artifactPath in (Test, fastOptJS) :=
+//   (crossTarget in (Test)).value / "spel2scalajs-test.mjs"
+
+// jsEnv := {
+//   new org.scalajs.jsenv.nodejs.NodeJSEnv(
+//     org.scalajs.jsenv.nodejs.NodeJSEnv
+//       .Config()
+//       .withArgs(List("--experimental-modules"))
+//   )
+// }
