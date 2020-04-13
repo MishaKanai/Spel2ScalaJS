@@ -217,7 +217,21 @@ class Evaluator(
         return valueInContext.get
       }
       case Projection(nullSafeNavigation, expression) => {
-        throw new RuntimeException("Projection Not Implemented")
+        val head = stack.head;
+        head match {
+          case JSCArray(value) => {
+            JSCArray(value.map(v => {
+              stack.push(v);
+              val result = evaluate(expression);
+              stack.pop();
+              result;
+            }))
+          }
+          case _ =>
+            throw new RuntimeException(
+              s"Cannot run projection expression on non-array: $head"
+            )
+        }
       }
       case OpPower(base, expression) =>
         applyBinFloatOp(

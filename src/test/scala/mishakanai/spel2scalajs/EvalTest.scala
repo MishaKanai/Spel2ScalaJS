@@ -31,7 +31,7 @@ object EvalTest extends TestSuite {
           "{1, 2, 3, 4, 5}.?[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
-      assert(result1.asInstanceOf[js.Array[js.Any]].toSeq == Seq(2, 4))
+      assert(result1.asInstanceOf[js.Array[Any]].toSeq == Seq(2, 4))
     }
     test("Can evaluate SelectionLast: get even") {
       val result1 = SpelEval
@@ -50,6 +50,16 @@ object EvalTest extends TestSuite {
       assert(result1 == 2)
     }
 
+    test("Can evaluate Projection: * 2") {
+      val result1 = SpelEval
+        .evaluate(
+          "{1, 2, 3, 4, 5}.![#this * 2]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(
+        result1.asInstanceOf[js.Array[Any]].toSeq == Seq(2, 4, 6, 8, 10)
+      )
+    }
     test(
       "Can evaluate a javascript defined method with dynamic number of arguments"
     ) {

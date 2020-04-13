@@ -60,18 +60,14 @@ object ParseTest extends TestSuite {
         result == expected
       )
     }
-    test("Parsing: {1, 2, 3, 4, 5}.$[#this % 2 == 0]") {
-      val result = SpelParser.apply("{1, 2, 3, 4, 5}.$[#this % 2 == 0]")
+    test("Parsing SelectionLast: {1}.$[#this % 2 == 0]") {
+      val result = SpelParser.apply("{1}.$[#this % 2 == 0]")
       val expected = Some(
         CompoundExpression(
           List(
             InlineList(
               List(
-                NumberLiteral(1),
-                NumberLiteral(2),
-                NumberLiteral(3),
-                NumberLiteral(4),
-                NumberLiteral(5)
+                NumberLiteral(1)
               )
             ),
             SelectionLast(
@@ -80,6 +76,25 @@ object ParseTest extends TestSuite {
                 OpModulus(VariableReference("this"), NumberLiteral(2)),
                 NumberLiteral(0)
               )
+            )
+          )
+        )
+      );
+      assert(result == expected)
+    }
+    test("Parsing Projection: {1}.![#this * 2]") {
+      val result = SpelParser.apply("{1}.![#this * 2]")
+      val expected = Some(
+        CompoundExpression(
+          List(
+            InlineList(
+              List(
+                NumberLiteral(1)
+              )
+            ),
+            Projection(
+              false,
+              OpMultiply(VariableReference("this"), NumberLiteral(2))
             )
           )
         )
