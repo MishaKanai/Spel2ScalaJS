@@ -10,7 +10,7 @@ object EvalTest extends TestSuite {
           "{1, 2, {3, 4}}[2][0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
-      assert(result == 3)
+      assert(result.asInstanceOf[Int] == 3)
     }
     test("Can evaluate an inline list") {
       val result = SpelEval
@@ -24,6 +24,30 @@ object EvalTest extends TestSuite {
       val result2 = SpelEval
         .evaluate("null ?: 2", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
       assert(result2.asInstanceOf[Float] == 2)
+    }
+    test("Can evaluate SelectionAll: get evens") {
+      val result1 = SpelEval
+        .evaluate(
+          "{1, 2, 3, 4, 5}.?[#this % 2 == 0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result1.asInstanceOf[js.Array[js.Any]].toSeq == Seq(2, 4))
+    }
+    test("Can evaluate SelectionLast: get even") {
+      val result1 = SpelEval
+        .evaluate(
+          "{1, 2, 3, 4, 5}.$[#this % 2 == 0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result1 == 4)
+    }
+    test("Can evaluate SelectionFirst: get even") {
+      val result1 = SpelEval
+        .evaluate(
+          "{1, 2, 3, 4, 5}.^[#this % 2 == 0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result1 == 2)
     }
 
     test(

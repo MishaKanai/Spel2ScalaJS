@@ -107,13 +107,35 @@ class Evaluator(
       })
   }
   def getValueInProvidedFuncsAndVars = (variableName: String) => {
-    if (variableName == "#this") Some(stack.head)
-    else if (variableName == "#root") Some(stack.last)
+    if (variableName == "this") Some(stack.head)
+    else if (variableName == "root") Some(stack.last)
     else
       functionsAndVariables match {
         case JSCDictionary(value) => value.get(variableName)
         case _                    => None
       }
+  }
+  def find(
+      jsArray: js.Array[JSContext],
+      expression: ExpressionSymbol,
+      reverse: Boolean
+  ): JSContext = {
+    val value = if (reverse) jsArray.reverse else jsArray;
+    value.find(e => {
+      stack.push(e);
+      val result = evaluate(expression);
+      stack.pop();
+      result match {
+        case JSCBoolean(value) => value == true
+        case _ =>
+          throw new RuntimeException(
+            "Result of selection expression is not Boolean"
+          );
+      }
+    }) match {
+      case Some(value) => value
+      case None        => JSCNull()
+    }
   }
 
   def evaluate(
@@ -136,13 +158,47 @@ class Evaluator(
         return valueInFuncsAndVars.get
       }
       case SelectionFirst(nullSafeNavigation, expression) => {
-        throw new RuntimeException("SelectionFirst Not Implemented")
+        val head = stack.head;
+        head match {
+          case JSCArray(value) => find(value, expression, false)
+          case _ =>
+            throw new RuntimeException(
+              s"Cannot run selection expression on non-array: $head"
+            )
+        }
       }
       case SelectionLast(nullSafeNavigation, expression) => {
-        throw new RuntimeException("SelectionLast Not Implemented")
+        val head = stack.head;
+        head match {
+          case JSCArray(value) => find(value, expression, true)
+          case _ =>
+            throw new RuntimeException(
+              s"Cannot run selection expression on non-array: $head"
+            )
+        }
       }
       case SelectionAll(nullSafeNavigation, expression) => {
-        throw new RuntimeException("Selection Not Implemented")
+        val head = stack.head;
+        head match {
+          case JSCArray(value) =>
+            JSCArray(value.filter(v => {
+              stack.push(v);
+              val result = evaluate(expression);
+              stack.pop();
+              result match {
+                case JSCBoolean(value) => value == true;
+                case _ =>
+                  throw new RuntimeException(
+                    "Result of selection expression is not Boolean"
+                  );
+              };
+            }))
+
+          case _ =>
+            throw new RuntimeException(
+              s"Cannot run selection expression on non-array: $head"
+            )
+        }
       }
       case PropertyReference(nullSafeNavigation, propertyName) => {
         val valueInContext: Option[JSContext] = getPropertyValueInContext(

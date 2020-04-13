@@ -114,7 +114,7 @@ object SpelParser extends JavaTokenParsers {
   /* START: NODE */
 
   def node: Parser[ExpressionSymbol] =
-    navProperty | index | functionOrVar | projection | selection
+    projection | selection | navProperty | index | functionOrVar
 
   def navProperty =
     ("." ~> notNullSafeMethodOrProperty) | ("?." ~> nullSafeMethodOrProperty)
@@ -181,13 +181,13 @@ object SpelParser extends JavaTokenParsers {
   def notNullSafeSelectionAll: Parser[ExpressionSymbol] =
     "?[" ~> expression <~ "]" ^^ { expr => SelectionAll(false, expr) }
   def nullSafeSelectionFirst: Parser[ExpressionSymbol] =
-    "^[" ~> expression <~ "]" ^^ { expr => SelectionAll(true, expr) }
+    "^[" ~> expression <~ "]" ^^ { expr => SelectionFirst(true, expr) }
   def notNullSafeSelectionFirst: Parser[ExpressionSymbol] =
-    "^[" ~> expression <~ "]" ^^ { expr => SelectionAll(false, expr) }
+    "^[" ~> expression <~ "]" ^^ { expr => SelectionFirst(false, expr) }
   def nullSafeSelectionLast: Parser[ExpressionSymbol] =
-    "$[" ~> expression <~ "]" ^^ { expr => SelectionAll(true, expr) }
+    "$[" ~> expression <~ "]" ^^ { expr => SelectionLast(true, expr) }
   def notNullSafeSelectionLast: Parser[ExpressionSymbol] =
-    "$[" ~> expression <~ "]" ^^ { expr => SelectionAll(false, expr) }
+    "$[" ~> expression <~ "]" ^^ { expr => SelectionLast(false, expr) }
   /*
   END: SELECTION
    */

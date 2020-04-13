@@ -60,6 +60,32 @@ object ParseTest extends TestSuite {
         result == expected
       )
     }
+    test("Parsing: {1, 2, 3, 4, 5}.$[#this % 2 == 0]") {
+      val result = SpelParser.apply("{1, 2, 3, 4, 5}.$[#this % 2 == 0]")
+      val expected = Some(
+        CompoundExpression(
+          List(
+            InlineList(
+              List(
+                NumberLiteral(1),
+                NumberLiteral(2),
+                NumberLiteral(3),
+                NumberLiteral(4),
+                NumberLiteral(5)
+              )
+            ),
+            SelectionLast(
+              false,
+              OpEQ(
+                OpModulus(VariableReference("this"), NumberLiteral(2)),
+                NumberLiteral(0)
+              )
+            )
+          )
+        )
+      );
+      assert(result == expected)
+    }
     test(
       "Parsing: foo() && arr?[0] > 0 || \"fooc\" ? arr?.![#this + 1] : null "
     ) {
