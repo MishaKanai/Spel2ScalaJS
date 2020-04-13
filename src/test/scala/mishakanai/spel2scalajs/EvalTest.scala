@@ -12,6 +12,14 @@ object EvalTest extends TestSuite {
         )
       assert(result.asInstanceOf[Int] == 3)
     }
+    test("Can evaluate negative number literals") {
+      val result = SpelEval
+        .evaluate(
+          "-1",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result.asInstanceOf[Int] == -1)
+    }
     test("Can evaluate an inline list") {
       val result = SpelEval
         .evaluate("{1, 2, 3}", js.Dictionary[Any]().asInstanceOf[js.Dynamic])

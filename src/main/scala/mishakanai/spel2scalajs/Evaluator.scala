@@ -292,9 +292,9 @@ class Evaluator(
         applyBinRelOp((a, b) => JSCBoolean(a && b), left, right)
       case Negative(value) => {
         evaluate(value) match {
-          case JSCBoolean(value) => JSCBoolean(!value)
+          case JSCFloat(value) => JSCFloat(value * -1)
           case x => {
-            throw new RuntimeException(s"Negation applied to $x")
+            throw new RuntimeException(s"unary (-) operator applied to $x")
           }
 
         }
