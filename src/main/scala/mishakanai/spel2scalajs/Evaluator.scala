@@ -159,46 +159,52 @@ class Evaluator(
       }
       case SelectionFirst(nullSafeNavigation, expression) => {
         val head = stack.head;
-        head match {
-          case JSCArray(value) => find(value, expression, false)
-          case _ =>
-            throw new RuntimeException(
-              s"Cannot run selection expression on non-array: $head"
-            )
-        }
+        if (head == JSCNull() && nullSafeNavigation) JSCNull()
+        else
+          head match {
+            case JSCArray(value) => find(value, expression, false)
+            case _ =>
+              throw new RuntimeException(
+                s"Cannot run selection expression on non-array: $head"
+              )
+          }
       }
       case SelectionLast(nullSafeNavigation, expression) => {
         val head = stack.head;
-        head match {
-          case JSCArray(value) => find(value, expression, true)
-          case _ =>
-            throw new RuntimeException(
-              s"Cannot run selection expression on non-array: $head"
-            )
-        }
+        if (head == JSCNull() && nullSafeNavigation) JSCNull()
+        else
+          head match {
+            case JSCArray(value) => find(value, expression, true)
+            case _ =>
+              throw new RuntimeException(
+                s"Cannot run selection expression on non-array: $head"
+              )
+          }
       }
       case SelectionAll(nullSafeNavigation, expression) => {
         val head = stack.head;
-        head match {
-          case JSCArray(value) =>
-            JSCArray(value.filter(v => {
-              stack.push(v);
-              val result = evaluate(expression);
-              stack.pop();
-              result match {
-                case JSCBoolean(value) => value == true;
-                case _ =>
-                  throw new RuntimeException(
-                    "Result of selection expression is not Boolean"
-                  );
-              };
-            }))
+        if (head == JSCNull() && nullSafeNavigation) JSCNull()
+        else
+          head match {
+            case JSCArray(value) =>
+              JSCArray(value.filter(v => {
+                stack.push(v);
+                val result = evaluate(expression);
+                stack.pop();
+                result match {
+                  case JSCBoolean(value) => value == true;
+                  case _ =>
+                    throw new RuntimeException(
+                      "Result of selection expression is not Boolean"
+                    );
+                };
+              }))
 
-          case _ =>
-            throw new RuntimeException(
-              s"Cannot run selection expression on non-array: $head"
-            )
-        }
+            case _ =>
+              throw new RuntimeException(
+                s"Cannot run selection expression on non-array: $head"
+              )
+          }
       }
       case PropertyReference(nullSafeNavigation, propertyName) => {
         val valueInContext: Option[JSContext] = getPropertyValueInContext(
@@ -218,20 +224,22 @@ class Evaluator(
       }
       case Projection(nullSafeNavigation, expression) => {
         val head = stack.head;
-        head match {
-          case JSCArray(value) => {
-            JSCArray(value.map(v => {
-              stack.push(v);
-              val result = evaluate(expression);
-              stack.pop();
-              result;
-            }))
+        if (head == JSCNull() && nullSafeNavigation) JSCNull()
+        else
+          head match {
+            case JSCArray(value) => {
+              JSCArray(value.map(v => {
+                stack.push(v);
+                val result = evaluate(expression);
+                stack.pop();
+                result;
+              }))
+            }
+            case _ =>
+              throw new RuntimeException(
+                s"Cannot run projection expression on non-array: $head"
+              )
           }
-          case _ =>
-            throw new RuntimeException(
-              s"Cannot run projection expression on non-array: $head"
-            )
-        }
       }
       case OpPower(base, expression) =>
         applyBinFloatOp(
@@ -371,25 +379,27 @@ class Evaluator(
         JSCArray(elements.map(evaluate).toJSArray)
       }
       case Indexer(nullSafeNavigation, index) => {
-        (stack.head, index) match {
-          case (JSCString(value), NumberLiteral(ix)) =>
-            JSCString(value.charAt(ix.toInt).toString);
-          case (JSCArray(value), NumberLiteral(ix)) =>
-            value(ix.toInt);
-          case (JSCDictionary(value), StringLiteral(key)) => {
-            value.get(key) match {
-              case Some(value) => value
-              case None =>
-                throw new RuntimeException(
-                  s"key $key not found in dictionary $value"
-                );
+        if (stack.head == JSCNull() && nullSafeNavigation) JSCNull()
+        else
+          (stack.head, index) match {
+            case (JSCString(value), NumberLiteral(ix)) =>
+              JSCString(value.charAt(ix.toInt).toString);
+            case (JSCArray(value), NumberLiteral(ix)) =>
+              value(ix.toInt);
+            case (JSCDictionary(value), StringLiteral(key)) => {
+              value.get(key) match {
+                case Some(value) => value
+                case None =>
+                  throw new RuntimeException(
+                    s"key $key not found in dictionary $value"
+                  );
+              }
             }
+            case (x, y) =>
+              throw new RuntimeException(
+                s"Not supported: indexing into $x with $y"
+              );
           }
-          case (x, y) =>
-            throw new RuntimeException(
-              s"Not supported: indexing into $x with $y"
-            );
-        }
       }
       case Elvis(expression, ifFalse) => {
         val expr = evaluate(expression)

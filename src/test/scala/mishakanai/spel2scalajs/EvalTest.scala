@@ -10,7 +10,23 @@ object EvalTest extends TestSuite {
           "{1, 2, {3, 4}}[2][0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
-      assert(result.asInstanceOf[Int] == 3)
+      assert(result == 3)
+    }
+    test("safe-navigate index (not null") {
+      val result = SpelEval
+        .evaluate(
+          "{1, 2, 3}?[2]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result == 3)
+    }
+    test("safe-navigate index (null)") {
+      val result = SpelEval
+        .evaluate(
+          "null?[2]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result == null)
     }
     test("Can evaluate negative number literals") {
       val result = SpelEval
@@ -41,6 +57,22 @@ object EvalTest extends TestSuite {
         )
       assert(result1.asInstanceOf[js.Array[Any]].toSeq == Seq(2, 4))
     }
+    test("Safe nav SelectionAll (not null)") {
+      val result1 = SpelEval
+        .evaluate(
+          "{1, 2, 3, 4, 5}?.?[#this % 2 == 0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result1.asInstanceOf[js.Array[Any]].toSeq == Seq(2, 4))
+    }
+    test("Safe nav SelectionAll (null)") {
+      val result1 = SpelEval
+        .evaluate(
+          "null?.?[#this % 2 == 0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result1 == null)
+    }
     test("Can evaluate SelectionLast: get even") {
       val result1 = SpelEval
         .evaluate(
@@ -49,13 +81,21 @@ object EvalTest extends TestSuite {
         )
       assert(result1 == 4)
     }
-    test("Can evaluate SelectionFirst: get even") {
+    test("Safe-navigate SelectionLast (not null)") {
       val result1 = SpelEval
         .evaluate(
-          "{1, 2, 3, 4, 5}.^[#this % 2 == 0]",
+          "{1, 2, 3, 4, 5}?.$[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
-      assert(result1 == 2)
+      assert(result1 == 4)
+    }
+    test("Safe-navigate SelectionFirst") {
+      val result1 = SpelEval
+        .evaluate(
+          "null?.^[#this % 2 == 0]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(result1 == null)
     }
 
     test("Can evaluate Projection: * 2") {
@@ -66,6 +106,26 @@ object EvalTest extends TestSuite {
         )
       assert(
         result1.asInstanceOf[js.Array[Any]].toSeq == Seq(2, 4, 6, 8, 10)
+      )
+    }
+    test("Safe-navigate Projection") {
+      val result1 = SpelEval
+        .evaluate(
+          "{1, 2, 3, 4, 5}?.![#this * 2]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(
+        result1.asInstanceOf[js.Array[Any]].toSeq == Seq(2, 4, 6, 8, 10)
+      )
+    }
+    test("Safe-navigate Projection") {
+      val result1 = SpelEval
+        .evaluate(
+          "null?.![#this * 2]",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
+      assert(
+        result1 == null
       )
     }
     test(
@@ -81,6 +141,34 @@ object EvalTest extends TestSuite {
       )
       assert(result.asInstanceOf[js.Array[Any]].toSeq == List(2, 4, 6))
     }
+    // BELOW: Nice to haves
+
+    // test(
+    //   "safe-navigate method call (not-null)"
+    // ) {
+    //   val dynamic = js.Dictionary(
+    //     "foo" -> js.eval("(...args) => args.map(x => x * 2)"),
+    //     "bar" -> 1
+    //   )
+    //   val result = SpelEval.evaluate(
+    //     "foo?(bar, 2, 3)",
+    //     dynamic.asInstanceOf[js.Dynamic]
+    //   )
+    //   assert(result.asInstanceOf[js.Array[Any]].toSeq == List(2, 4, 6))
+    // }
+    // test(
+    //   "safe-navigate method call (null)"
+    // ) {
+    //   val dynamic = js.Dictionary(
+    //     "foo" -> null,
+    //     "bar" -> 1
+    //   )
+    //   val result = SpelEval.evaluate(
+    //     "foo?(bar, 2, 3)",
+    //     dynamic.asInstanceOf[js.Dynamic]
+    //   )
+    //   assert(result == null)
+    // }
 
     test(
       "Can evaluate a scala defined method"
