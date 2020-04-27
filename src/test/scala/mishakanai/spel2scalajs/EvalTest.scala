@@ -6,7 +6,7 @@ object EvalTest extends TestSuite {
   def tests = Tests {
     test("Can use indexes into arrays") {
       val result = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, {3, 4}}[2][0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -14,7 +14,7 @@ object EvalTest extends TestSuite {
     }
     test("safe-navigate index (not null") {
       val result = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3}?[2]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -22,7 +22,7 @@ object EvalTest extends TestSuite {
     }
     test("safe-navigate index (null)") {
       val result = SpelEval
-        .evaluate(
+        .evaluateFast(
           "null?[2]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -30,7 +30,7 @@ object EvalTest extends TestSuite {
     }
     test("Can evaluate negative number literals") {
       val result = SpelEval
-        .evaluate(
+        .evaluateFast(
           "-1",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -38,20 +38,26 @@ object EvalTest extends TestSuite {
     }
     test("Can evaluate an inline list") {
       val result = SpelEval
-        .evaluate("{1, 2, 3}", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
+        .evaluateFast(
+          "{1, 2, 3}",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
       assert(result.asInstanceOf[js.Array[Any]].toSeq == List(1, 2, 3))
     }
     test("Can evaluate Elvis") {
       val result1 = SpelEval
-        .evaluate("1 ?: 2", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
+        .evaluateFast("1 ?: 2", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
       assert(result1.asInstanceOf[Float] == 1)
       val result2 = SpelEval
-        .evaluate("null ?: 2", js.Dictionary[Any]().asInstanceOf[js.Dynamic])
+        .evaluateFast(
+          "null ?: 2",
+          js.Dictionary[Any]().asInstanceOf[js.Dynamic]
+        )
       assert(result2.asInstanceOf[Float] == 2)
     }
     test("Can evaluate SelectionAll: get evens") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3, 4, 5}.?[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -59,7 +65,7 @@ object EvalTest extends TestSuite {
     }
     test("Safe nav SelectionAll (not null)") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3, 4, 5}?.?[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -67,7 +73,7 @@ object EvalTest extends TestSuite {
     }
     test("Safe nav SelectionAll (null)") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "null?.?[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -75,7 +81,7 @@ object EvalTest extends TestSuite {
     }
     test("Can evaluate SelectionLast: get even") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3, 4, 5}.$[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -83,7 +89,7 @@ object EvalTest extends TestSuite {
     }
     test("Safe-navigate SelectionLast (not null)") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3, 4, 5}?.$[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -91,7 +97,7 @@ object EvalTest extends TestSuite {
     }
     test("Safe-navigate SelectionFirst") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "null?.^[#this % 2 == 0]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -100,7 +106,7 @@ object EvalTest extends TestSuite {
 
     test("Can evaluate Projection: * 2") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3, 4, 5}.![#this * 2]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -110,7 +116,7 @@ object EvalTest extends TestSuite {
     }
     test("Safe-navigate Projection") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "{1, 2, 3, 4, 5}?.![#this * 2]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -120,7 +126,7 @@ object EvalTest extends TestSuite {
     }
     test("Safe-navigate Projection") {
       val result1 = SpelEval
-        .evaluate(
+        .evaluateFast(
           "null?.![#this * 2]",
           js.Dictionary[Any]().asInstanceOf[js.Dynamic]
         )
@@ -135,7 +141,7 @@ object EvalTest extends TestSuite {
         "foo" -> js.eval("(...args) => args.map(x => x * 2)"),
         "bar" -> 1
       )
-      val result = SpelEval.evaluate(
+      val result = SpelEval.evaluateFast(
         "foo(bar, 2, 3)",
         dynamic.asInstanceOf[js.Dynamic]
       )
