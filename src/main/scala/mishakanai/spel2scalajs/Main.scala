@@ -2,33 +2,23 @@ package mishakanai.spel2scalajs
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSExportTopLevel
 import scala.scalajs.js.annotation.JSExport
-import scala.util.parsing.combinator._
 import scala.scalajs.js.JSON
 import scala.scalajs.js.Dictionary
 import js.JSConverters._
 import js.typeOf
 import fastparse._
+
 @JSExportTopLevel("Spel2ScalaJs")
 object SpelEval {
   @JSExport
-  def evaluate(
+  def parseFast(
       input: String,
       context: js.Dynamic,
       functionsAndVariables: js.Dynamic =
         js.Dictionary().asInstanceOf[js.Dynamic]
   ): js.Dynamic = {
-    val result = SpelParser
-      .apply(input)
-      .map(p => {
-        val ctxt = DynamicJsParser.parseDynamicJs(context)
-        val fnsAndVars = DynamicJsParser.parseDynamicJs(functionsAndVariables)
-        new Evaluator(ctxt, fnsAndVars).evaluate(p)
-      })
-    if (result.isDefined)
-      return DynamicJsParser.backToDynamic(result.get).asInstanceOf[js.Dynamic]
-    else {
-      throw new RuntimeException("Failed to Parse Spel expression")
-    }
+    val result = parse(input, ExpressionParser.parse(_))
+    null
   }
   @JSExport
   def evaluateFast(
@@ -49,5 +39,81 @@ object SpelEval {
     else {
       throw new RuntimeException("Failed to Parse Spel expression")
     }
+  }
+  // return a javascript object with functions to get:
+  // 1. paths (e.g. data paths) (rewrite this using tests from the typescript impls)
+  // 2. 'evaluate' function.
+  //
+  /*
+    {
+      type: 'success',
+      evaluate(context, functionsAndVars)
+    } | {
+      type: 'failure',
+      msg: string
+      i: number,
+
+    }
+   */
+  @JSExport
+  def compileExpression(
+      input: String
+  ): js.Dictionary[Any] = {
+    val c = parse(input, ExpressionParser.parse(_))
+
+    c.fold(
+      (msg, i, extra) =>
+        js.Dictionary[Any](
+          "type" -> "parse_failure",
+          "msg" -> msg,
+          "i" -> i
+        ),
+      (r: ExpressionSymbol, _) => {
+        val getExpansions: js.Function0[js.Array[String]] =
+          () => {
+            Meta.getExpansions(r).toJSArray
+          }
+        val getExpansionsWithAll: js.Function0[js.Array[String]] =
+          () => {
+            Meta.getExpansions(r, true).toJSArray
+          }
+        val evaluate
+            : js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
+          (
+              context: js.Dynamic,
+              functionsAndVariables: js.Dynamic
+          ) =>
+            {
+              val ctxt = DynamicJsParser.parseDynamicJs(context)
+              val fnsAndVars =
+                DynamicJsParser.parseDynamicJs(functionsAndVariables)
+              try {
+                val result = new Evaluator(ctxt, fnsAndVars).evaluate(r)
+                val asJs = DynamicJsParser
+                  .backToDynamic(result)
+                  .asInstanceOf[js.Dynamic]
+                js.Dictionary[Any](
+                  "type" -> "evaluation_success",
+                  "result" -> asJs
+                )
+              } catch {
+                case e: RuntimeException => {
+                  val msg = e.getMessage()
+                  js.Dictionary[Any](
+                    "type" -> "evaluation_failure",
+                    "msg" -> msg
+                  )
+                }
+              }
+            }
+        }
+        js.Dictionary[Any](
+          "type" -> "parse_success",
+          "evaluate" -> evaluate,
+          "getExpansions" -> getExpansions,
+          "getExpansionsWithAll" -> getExpansionsWithAll
+        )
+      }
+    )
   }
 }

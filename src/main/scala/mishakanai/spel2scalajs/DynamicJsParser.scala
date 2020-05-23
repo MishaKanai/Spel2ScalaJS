@@ -1,6 +1,5 @@
 package mishakanai.spel2scalajs
 import scala.scalajs.js
-import scala.util.parsing.combinator._
 import js.JSConverters._
 import js.typeOf
 
@@ -28,7 +27,7 @@ object DynamicJsParser {
         dynamic.asInstanceOf[js.Array[js.Dynamic]].map(parseDynamicJs)
       )
     }
-    if (typeOf(dynamic) == "object") {
+    if (typeOf(dynamic) == "object" && dynamic != null) {
       val asString = dynamic.asInstanceOf[scala.scalajs.js.Object].toString()
       if (asString == "[object Object]") {
         val dict = dynamic.asInstanceOf[js.Dictionary[js.Dynamic]]

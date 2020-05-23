@@ -230,6 +230,25 @@ object ParseTest extends TestSuite {
       )
     }
     test(
+      " myfunc(\")\", x) "
+    ) {
+      val Parsed.Success(result, _) =
+        parse(
+          " myfunc(\")\", x) ",
+          ExpressionParser.parse(_)
+        )
+      val expected =
+        MethodReference(
+          false,
+          "myfunc",
+          List(StringLiteral(")"), PropertyReference(false, "x"))
+        )
+
+      assert(
+        result == expected
+      )
+    }
+    test(
       " prop "
     ) {
       val Parsed.Success(result, _) =
@@ -239,6 +258,80 @@ object ParseTest extends TestSuite {
         )
       val expected =
         PropertyReference(false, "prop")
+
+      assert(
+        result == expected
+      )
+    }
+    test(
+      " prop.![#this.foo + #this.bar.baz] "
+    ) {
+      val Parsed.Success(result, _) =
+        parse(
+          " prop.![#this + #this.foo + #this.bar.baz] ",
+          ExpressionParser.parse(_)
+        )
+      val expected =
+        CompoundExpression(
+          List(
+            PropertyReference(false, "prop"),
+            Projection(
+              false,
+              OpPlus(
+                OpPlus(
+                  VariableReference("this"),
+                  CompoundExpression(
+                    List(
+                      VariableReference("this"),
+                      PropertyReference(false, "foo")
+                    )
+                  )
+                ),
+                CompoundExpression(
+                  List(
+                    VariableReference("this"),
+                    PropertyReference(false, "bar"),
+                    PropertyReference(false, "baz")
+                  )
+                )
+              )
+            )
+          )
+        )
+
+      assert(
+        result == expected
+      )
+    }
+    test(
+      "foo.bar.baz != null ? foo.bar.baz : null"
+    ) {
+      val Parsed.Success(result, _) =
+        parse(
+          "foo.bar.baz != null ? foo.bar.baz : null",
+          ExpressionParser.parse(_)
+        )
+      val expected =
+        Ternary(
+          OpNE(
+            CompoundExpression(
+              List(
+                PropertyReference(false, "foo"),
+                PropertyReference(false, "bar"),
+                PropertyReference(false, "baz")
+              )
+            ),
+            NullLiteral()
+          ),
+          CompoundExpression(
+            List(
+              PropertyReference(false, "foo"),
+              PropertyReference(false, "bar"),
+              PropertyReference(false, "baz")
+            )
+          ),
+          NullLiteral()
+        )
 
       assert(
         result == expected

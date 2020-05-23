@@ -93,26 +93,31 @@ object LiteralsParser {
 
 object ExpressionParser {
   import fastparse._, JavaWhitespace._
+
   def expression[_: P]: P[ExpressionSymbol] =
     P(
-      LiteralsParser.space.? ~ (ternary | elvis | logicalOrExpression) ~ LiteralsParser.space.?
-    )
-  def ternary[_: P]: P[ExpressionSymbol] =
-    P(logicalOrExpression ~ "?" ~ expression ~ ":" ~ expression).map(x => {
+      LiteralsParser.space.? ~ logicalOrExpresion ~ (("?" ~ expression ~ ":" ~ expression) | ("?:" ~ expression)).? ~ LiteralsParser.space.?
+    ).map(x => {
       x match {
-        case (condition, ifTrue, ifFalse) => Ternary(condition, ifTrue, ifFalse)
+        case (condition, maybeRest) => {
+          maybeRest match {
+            case Some(r) =>
+              r match {
+                case (ifTrue, ifFalse) =>
+                  Ternary(
+                    condition,
+                    ifTrue.asInstanceOf[ExpressionSymbol],
+                    ifFalse.asInstanceOf[ExpressionSymbol]
+                  )
+                case (ifFalse) =>
+                  Elvis(condition, ifFalse.asInstanceOf[ExpressionSymbol])
+              }
+            case None => condition
+          }
+        }
       }
-
     })
-  def elvis[_: P]: P[ExpressionSymbol] =
-    P(
-      logicalOrExpression ~ "?:" ~ expression
-    ).map(x =>
-      x match {
-        case (expression, ifFalse) => Elvis(expression, ifFalse)
-      }
-    )
-  def logicalOrExpression[_: P]: P[ExpressionSymbol] =
+  def logicalOrExpresion[_: P]: P[ExpressionSymbol] =
     P(
       LiteralsParser.space.? ~
         logicalAndExpression ~
@@ -130,6 +135,7 @@ object ExpressionParser {
 
       }
     })
+
   def logicalAndExpression[_: P]: P[ExpressionSymbol] =
     P(
       relationalExpression ~ ("&&" ~ relationalExpression).rep.?
@@ -149,7 +155,7 @@ object ExpressionParser {
   def relationalExpression[_: P]: P[ExpressionSymbol] =
     P(
       sumExpression ~
-        (("<=" | ">=" | "==" | ">" | "<").! ~ sumExpression).?
+        (StringIn("<=", ">=", "==", "!=", "<", ">").! ~ sumExpression).?
     ).map(x =>
       x match {
         case (left, Some((operator, right))) =>
@@ -159,13 +165,15 @@ object ExpressionParser {
             case "<=" => OpLE(left, right)
             case ">=" => OpGE(left, right)
             case "==" => OpEQ(left, right)
+            case "!=" => OpNE(left, right)
           }
         case (left, None) => left
       }
     )
+
   def sumExpression[_: P]: P[ExpressionSymbol] =
     P(
-      productExpression ~ (("+".! ~ productExpression) | ("-".! ~ productExpression)).rep.?
+      productExpression ~ (CharIn("+\\-").! ~ productExpression).rep.?
     ).map(x => {
       x match {
         case (op, maybeList) => {
@@ -180,10 +188,11 @@ object ExpressionParser {
         }
       }
     })
+
   def productExpression[_: P]: P[ExpressionSymbol] =
     P(
       powerExpression ~ (
-        ("*".! ~ powerExpression) | ("/".! ~ powerExpression) | ("%".! ~ powerExpression)
+        (CharIn("*/%").! ~ powerExpression)
       ).rep.?
     ).map(x =>
       x match {
@@ -200,6 +209,7 @@ object ExpressionParser {
 
       }
     )
+
   def powerExpression[_: P]: P[ExpressionSymbol] =
     P(
       unaryExpression ~ ("**" ~ unaryExpression).?
@@ -209,26 +219,28 @@ object ExpressionParser {
         case (left, None)        => left
       }
     )
+
   def unaryExpression[_: P]: P[ExpressionSymbol] =
     P(negative | not | primaryExpression)
 
   def negative[_: P]: P[ExpressionSymbol] =
     P(
-      "-" ~ unaryExpression
+      "-" ~/ unaryExpression
     ).map(Negative)
 
-  def not[_: P]: P[ExpressionSymbol] = P("!" ~ unaryExpression).map(OpNot)
+  def not[_: P]: P[ExpressionSymbol] = P("!" ~/ unaryExpression).map(OpNot)
 
   def primaryExpression[_: P]: P[ExpressionSymbol] =
-    P(startNode ~ node.rep).map(x =>
-      x match {
-        case (sn, continuation) => {
-          if (continuation.length > 0)
-            CompoundExpression(sn :: continuation.toList)
-          else sn
+    P(startNode ~ node.rep)
+      .map(x =>
+        x match {
+          case (sn, continuation) => {
+            if (continuation.length > 0)
+              CompoundExpression(sn :: continuation.toList)
+            else sn
+          }
         }
-      }
-    )
+      )
 
   def startNode[_: P]: P[ExpressionSymbol] =
     P(
@@ -236,9 +248,10 @@ object ExpressionParser {
     )
   def node[_: P]: P[ExpressionSymbol] =
     P(projection | selection | navProperty | index | functionOrVar)
-  def navProperty[_: P]: P[ExpressionSymbol] = P(
-    ("." ~ notNullSafeMethodOrProperty) | ("?." ~ nullSafeMethodOrProperty)
-  )
+  def navProperty[_: P]: P[ExpressionSymbol] =
+    P(
+      ("." ~ notNullSafeMethodOrProperty) | ("?." ~ nullSafeMethodOrProperty)
+    )
 
   def index[_: P]: P[ExpressionSymbol] = P(nullSafeIndex | notNullSafeIndex)
 
@@ -271,6 +284,7 @@ object ExpressionParser {
         case (id, None)       => PropertyReference(false, id)
       }
     )
+
 // function or var
   def functionOrVar[_: P]: P[ExpressionSymbol] = P(function | variable)
   def function[_: P]: P[ExpressionSymbol] =
@@ -281,71 +295,51 @@ object ExpressionParser {
         case (id, list) => FunctionReference(false, id, list.toList)
       }
     )
+
   def variable[_: P]: P[ExpressionSymbol] =
     P("#" ~ ident.!).map(VariableReference)
 
-  // selection
-
   def selection[_: P]: P[ExpressionSymbol] =
-    P(nullSafeSelection | notNullSafeSelection)
-
-  def notNullSafeSelection[_: P]: P[ExpressionSymbol] = P(
-    "." ~ (notNullSafeSelectionAll | notNullSafeSelectionFirst | notNullSafeSelectionLast)
-  )
-  def nullSafeSelection[_: P]: P[ExpressionSymbol] = P(
-    "?." ~ (nullSafeSelectionAll | nullSafeSelectionFirst | nullSafeSelectionLast)
-  )
-
-  def nullSafeSelectionAll[_: P]: P[ExpressionSymbol] =
     P(
-      "?[" ~ expression ~ "]"
-    ).map(expr => SelectionAll(true, expr))
-  def notNullSafeSelectionAll[_: P]: P[ExpressionSymbol] =
-    P(
-      "?[" ~ expression ~ "]"
-    ).map(expr => SelectionAll(false, expr))
-
-  def nullSafeSelectionFirst[_: P]: P[ExpressionSymbol] =
-    P(
-      "^[" ~ expression ~ "]"
-    ).map(expr => SelectionFirst(true, expr))
-
-  def nullSafeSelectionLast[_: P]: P[ExpressionSymbol] =
-    P(
-      "$[" ~ expression ~ "]"
-    ).map(expr => SelectionLast(true, expr))
-
-  def notNullSafeSelectionFirst[_: P]: P[ExpressionSymbol] =
-    P(
-      "^[" ~ expression ~ "]"
-    ).map(expr => SelectionFirst(false, expr))
-
-  def notNullSafeSelectionLast[_: P]: P[ExpressionSymbol] =
-    P(
-      "$[" ~ expression ~ "]"
-    ).map(expr => SelectionLast(false, expr))
-  // projection
+      StringIn("?.", ".").! ~ StringIn("?[", "^[", "$[").! ~ expression ~ "]"
+    ).map(x => {
+      x match {
+        case ("?.", opener, expr) =>
+          opener match {
+            case "?[" => SelectionAll(true, expr)
+            case "^[" => SelectionFirst(true, expr)
+            case "$[" => SelectionLast(true, expr)
+          }
+        case (".", opener, expr) =>
+          opener match {
+            case "?[" => SelectionAll(false, expr)
+            case "^[" => SelectionFirst(false, expr)
+            case "$[" => SelectionLast(false, expr)
+          }
+      }
+    })
 
   def projection[_: P]: P[ExpressionSymbol] =
-    P(nullSafeProjection | notNullSafeProjection)
-
-  def nullSafeProjection[_: P]: P[ExpressionSymbol] =
     P(
-      "?.![" ~ expression ~ "]"
-    ).map(expr => Projection(true, expr))
-
-  def notNullSafeProjection[_: P]: P[ExpressionSymbol] =
-    P(
-      ".![" ~ expression ~ "]"
-    ).map(expr => Projection(false, expr))
+      StringIn("?.", ".").! ~ StringIn("![") ~ expression ~ "]"
+    ).map(x => {
+      x match {
+        case ("?.", expr) =>
+          Projection(true, expr)
+        case (".", expr) =>
+          Projection(false, expr)
+      }
+    })
 
   // literals
-  def literal[_: P]: P[ExpressionSymbol] = P(
-    (LiteralsParser.string | LiteralsParser.number | LiteralsParser.`true` | LiteralsParser.`false` | LiteralsParser.`null`)
-  )
-  def parenExpr[_: P]: P[ExpressionSymbol] = P(
-    "(" ~ expression ~ ")"
-  )
+  def literal[_: P]: P[ExpressionSymbol] =
+    P(
+      (LiteralsParser.string | LiteralsParser.number | LiteralsParser.`true` | LiteralsParser.`false` | LiteralsParser.`null`)
+    )
+  def parenExpr[_: P]: P[ExpressionSymbol] =
+    P(
+      "(" ~/ expression ~ ")"
+    )
 
   def inlineList[_: P]: P[ExpressionSymbol] =
     P(

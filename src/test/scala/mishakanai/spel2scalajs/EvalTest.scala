@@ -180,7 +180,7 @@ object EvalTest extends TestSuite {
       "Can evaluate a scala defined method"
     ) {
       def scalaFn = () => js.Array(1, 2, 3)
-      val result = SpelEval.evaluate(
+      val result = SpelEval.evaluateFast(
         "foo.baz()",
         js.Dictionary(
             "foo" -> js.Dictionary(
@@ -197,6 +197,60 @@ object EvalTest extends TestSuite {
             2,
             3
           )
+      )
+    }
+    test(
+      "foo.bar.baz != null ? foo.bar.baz : null"
+    ) {
+      def scalaFn = () => js.Array(1, 2, 3)
+      val result = SpelEval.evaluateFast(
+        "foo.bar.baz != null ? foo.bar.baz : null",
+        js.Dictionary(
+            "foo" -> js.Dictionary(
+              "bar" -> js.Dictionary(
+                "baz" -> null
+              )
+            )
+          )
+          .asInstanceOf[js.Dynamic]
+      )
+
+      assert(
+        result == null
+      )
+    }
+    test(
+      ">="
+    ) {
+      var result = SpelEval.evaluateFast(
+        "5 >=5",
+        js.Dictionary(
+            )
+          .asInstanceOf[js.Dynamic]
+      )
+
+      assert(
+        result == true
+      )
+      result = SpelEval.evaluateFast(
+        "5 >= 4",
+        js.Dictionary(
+            )
+          .asInstanceOf[js.Dynamic]
+      )
+
+      assert(
+        result == true
+      )
+      result = SpelEval.evaluateFast(
+        "5 >= 6",
+        js.Dictionary(
+            )
+          .asInstanceOf[js.Dynamic]
+      )
+
+      assert(
+        result == false
       )
     }
 
@@ -218,7 +272,7 @@ object EvalTest extends TestSuite {
           "f" -> "helloFromVars"
         )
         .asInstanceOf[js.Dynamic]
-      val result1a = SpelEval.evaluate(
+      val result1a = SpelEval.evaluateFast(
         "#foo()",
         ctxt,
         variables
@@ -226,7 +280,7 @@ object EvalTest extends TestSuite {
       assert(
         result1a.asInstanceOf[String] == scalaVarsFn()
       )
-      val result1b = SpelEval.evaluate(
+      val result1b = SpelEval.evaluateFast(
         "#f",
         ctxt,
         variables
@@ -234,7 +288,7 @@ object EvalTest extends TestSuite {
       assert(
         result1b.asInstanceOf[String] == "helloFromVars"
       )
-      val result2a = SpelEval.evaluate(
+      val result2a = SpelEval.evaluateFast(
         "foo()",
         ctxt,
         variables
@@ -242,7 +296,7 @@ object EvalTest extends TestSuite {
       assert(
         result2a.asInstanceOf[String] == scalaCtxtFn()
       )
-      val result2b = SpelEval.evaluate(
+      val result2b = SpelEval.evaluateFast(
         "f",
         ctxt,
         variables
