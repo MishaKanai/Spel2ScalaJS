@@ -384,5 +384,37 @@ object EvalTest extends TestSuite {
       )
       assert(result2 == true)
     }
+    test("Boolean operators short circuit: &&") {
+
+      val result2 = SpelEval.evaluateFast(
+        """
+        foo && foo()
+        """,
+        js.eval(
+            "({" +
+              "foo: false" +
+              "})"
+          )
+          .asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == false)
+    }
+    test("Boolean operators short circuit: ||") {
+
+      val result2 = SpelEval.evaluateFast(
+        """
+        foo == false || foo()
+        """,
+        js.eval(
+            "({" +
+              "foo: false" +
+              "})"
+          )
+          .asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == true)
+    }
   }
 }

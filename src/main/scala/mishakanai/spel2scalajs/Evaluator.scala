@@ -40,30 +40,51 @@ class Evaluator(
       }
     }
   }
-  def applyBinRelOp(
-      fn: (java.lang.Boolean, java.lang.Boolean) => JSContext,
+  sealed trait BoolOpType
+  case class And() extends BoolOpType
+  case class Or() extends BoolOpType
+  def booleanOperator(
+      opType: BoolOpType,
       left: ExpressionSymbol,
       right: ExpressionSymbol
   ): JSContext = {
-    val leftValue = evaluate(left) match {
+    val maybeLeftValue = evaluate(left) match {
       case JSCBoolean(value) => Some[java.lang.Boolean](value)
       case JSCNull()         => Some[java.lang.Boolean](null)
       case _                 => None
     }
-    val rightValue = evaluate(right) match {
-      case JSCBoolean(value) => Some[java.lang.Boolean](value)
-      case JSCNull()         => Some[java.lang.Boolean](null)
-      case _                 => None
-    }
-    (leftValue, rightValue) match {
-      case (None, _) => throw new RuntimeException(s" $left is not a boolean")
-      case (_, None) => throw new RuntimeException(s" $right is not a boolean")
-      case (Some(x), Some(y)) => {
-        fn(
-          x,
-          y
-        )
+    maybeLeftValue match {
+      case Some(leftValue) => {
+        if (opType == Or() && leftValue == true)
+          JSCBoolean(true)
+        else if (opType == And() && leftValue == null) JSCNull()
+        else if (opType == And() && leftValue == false) JSCBoolean(false)
+        else {
+          val maybeRightValue = evaluate(right) match {
+            case JSCBoolean(value) => Some[java.lang.Boolean](value)
+            case JSCNull()         => Some[java.lang.Boolean](null)
+            case _                 => None
+          }
+          maybeRightValue match {
+            case Some(rightValue) =>
+              if (opType == And()) {
+                if (leftValue == null || rightValue == null)
+                  JSCNull()
+                else JSCBoolean(leftValue && rightValue)
+              } else {
+                if (leftValue == null || rightValue == null) {
+                  if (leftValue == null) {
+                    if (rightValue == null) JSCNull()
+                    else JSCBoolean(rightValue)
+                  } else JSCBoolean(leftValue)
+                } else JSCBoolean(leftValue || rightValue)
+              }
+            case None =>
+              throw new RuntimeException(s" $left is not a null/boolean")
+          }
+        }
       }
+      case None => throw new RuntimeException(s" $left is not a null/boolean")
     }
   }
   def applyBinFloatOp(
@@ -252,15 +273,8 @@ class Evaluator(
       case OpPlus(left, right) =>
         applyBinFloatOp((a, b) => JSCFloat(a + b), left, right)
       case OpOr(left, right) =>
-        applyBinRelOp(
-          (a, b) =>
-            if (a == null || b == null) {
-              if (a == null) {
-                if (b == null) {
-                  JSCNull()
-                } else JSCBoolean(b)
-              } else JSCBoolean(a)
-            } else JSCBoolean(a || b),
+        booleanOperator(
+          Or(),
           left,
           right
         )
@@ -312,11 +326,8 @@ class Evaluator(
       case OpDivide(left, right) =>
         applyBinFloatOp((a, b) => JSCFloat(a / b), left, right)
       case OpAnd(left, right) =>
-        applyBinRelOp(
-          (a, b) =>
-            if (a == null || b == null) {
-              JSCNull()
-            } else JSCBoolean(a && b),
+        booleanOperator(
+          And(),
           left,
           right
         )
