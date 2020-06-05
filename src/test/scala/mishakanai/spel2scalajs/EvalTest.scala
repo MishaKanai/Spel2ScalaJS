@@ -316,5 +316,73 @@ object EvalTest extends TestSuite {
         result2b.asInstanceOf[String] == "helloFromContext"
       )
     }
+    test(
+      "Can evaluate javascript methods"
+    ) {
+      val ctxt = js
+        .Dictionary(
+          "add" -> js.eval("(a, b) => a + b")
+        )
+        .asInstanceOf[js.Dynamic]
+      val result = SpelEval.evaluateFast(
+        "add(1, 2)",
+        ctxt,
+        js.eval("{}").asInstanceOf[js.Dynamic]
+      )
+      assert(result == 3)
+    }
+    test("Null behavior with boolean operators: !null") {
+      val result2 = SpelEval.evaluateFast(
+        """
+        !null
+        """,
+        js.eval("({ })").asInstanceOf[js.Dynamic],
+        js.eval("{}").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == true)
+    }
+    test("Null behavior with boolean operators: null || true") {
+      val result2 = SpelEval.evaluateFast(
+        """
+        null || true
+        """,
+        js.eval("({ })").asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == true)
+    }
+    test("Null behavior with boolean operators: null && true") {
+
+      val result2 = SpelEval.evaluateFast(
+        """
+        null && true
+        """,
+        js.eval("({ })").asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == null)
+    }
+    test("Null behavior with boolean operators: true && null") {
+
+      val result2 = SpelEval.evaluateFast(
+        """
+        true && null
+        """,
+        js.eval("({ })").asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == null)
+    }
+    test("Null behavior with boolean operators: true && null") {
+
+      val result2 = SpelEval.evaluateFast(
+        """
+        true || null
+        """,
+        js.eval("({ })").asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == true)
+    }
   }
 }

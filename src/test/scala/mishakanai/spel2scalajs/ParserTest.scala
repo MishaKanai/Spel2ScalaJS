@@ -364,6 +364,26 @@ object ParseTest extends TestSuite {
       )
     }
     test(
+      "real example 1"
+    ) {
+      val Parsed.Success(result, _) = parse(
+        "!(lookupEntityData('Provider', parentProviderId, 'hasMiisSa' ))",
+        ExpressionParser.parse(_)
+      )
+      val expected = OpNot(
+        MethodReference(
+          false,
+          "lookupEntityData",
+          List(
+            StringLiteral("Provider"),
+            PropertyReference(false, "parentProviderId"),
+            StringLiteral("hasMiisSa")
+          )
+        )
+      )
+      assert(result == expected);
+    }
+    test(
       "Parsing: foo() && arr?[0] > 0 || \"fooc\" ? arr?.![#this + 1] : null "
     ) {
       val Parsed.Success(result, _) =

@@ -41,16 +41,18 @@ class Evaluator(
     }
   }
   def applyBinRelOp(
-      fn: (Boolean, Boolean) => JSContext,
+      fn: (java.lang.Boolean, java.lang.Boolean) => JSContext,
       left: ExpressionSymbol,
       right: ExpressionSymbol
   ): JSContext = {
     val leftValue = evaluate(left) match {
-      case JSCBoolean(value) => Some(value)
+      case JSCBoolean(value) => Some[java.lang.Boolean](value)
+      case JSCNull()         => Some[java.lang.Boolean](null)
       case _                 => None
     }
     val rightValue = evaluate(right) match {
-      case JSCBoolean(value) => Some(value)
+      case JSCBoolean(value) => Some[java.lang.Boolean](value)
+      case JSCNull()         => Some[java.lang.Boolean](null)
       case _                 => None
     }
     (leftValue, rightValue) match {
@@ -250,13 +252,26 @@ class Evaluator(
       case OpPlus(left, right) =>
         applyBinFloatOp((a, b) => JSCFloat(a + b), left, right)
       case OpOr(left, right) =>
-        applyBinRelOp((a, b) => JSCBoolean(a || b), left, right)
+        applyBinRelOp(
+          (a, b) =>
+            if (a == null || b == null) {
+              if (a == null) {
+                if (b == null) {
+                  JSCNull()
+                } else JSCBoolean(b)
+              } else JSCBoolean(a)
+            } else JSCBoolean(a || b),
+          left,
+          right
+        )
       case OpNot(expression) =>
         evaluate(expression) match {
           case JSCBoolean(value) => JSCBoolean(!value)
-          case _ => {
+          case JSCNull()         => JSCBoolean(true)
+          case JSCString(value)  => JSCBoolean(value != "")
+          case r => {
             throw new RuntimeException(
-              s"value $expression is not Boolean for ! operator"
+              s"value $expression (evaluates to $r) is not Boolean for ! operator"
             )
           }
         }
@@ -297,7 +312,14 @@ class Evaluator(
       case OpDivide(left, right) =>
         applyBinFloatOp((a, b) => JSCFloat(a / b), left, right)
       case OpAnd(left, right) =>
-        applyBinRelOp((a, b) => JSCBoolean(a && b), left, right)
+        applyBinRelOp(
+          (a, b) =>
+            if (a == null || b == null) {
+              JSCNull()
+            } else JSCBoolean(a && b),
+          left,
+          right
+        )
       case Negative(value) => {
         evaluate(value) match {
           case JSCFloat(value) => JSCFloat(value * -1)
