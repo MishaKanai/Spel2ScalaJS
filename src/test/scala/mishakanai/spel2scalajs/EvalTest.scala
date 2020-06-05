@@ -4,6 +4,17 @@ import scala.scalajs.js
 
 object EvalTest extends TestSuite {
   def tests = Tests {
+    test("Can evaluate properties") {
+      val result = SpelEval
+        .evaluateFast(
+          "foo",
+          js.Dictionary[Any]({
+              "foo" -> false
+            })
+            .asInstanceOf[js.Dynamic]
+        )
+      assert(result == false)
+    }
     test("Can use indexes into arrays") {
       val result = SpelEval
         .evaluateFast(

@@ -63,6 +63,9 @@ object DynamicJsParser {
       // javascript function can be called with any number of parameters
       return JSCFunction(dynamic)
     }
+    if (typeOf(dynamic) == "boolean") {
+      return JSCBoolean(dynamic.asInstanceOf[Boolean]);
+    }
     return JSCNull()
   }
 
