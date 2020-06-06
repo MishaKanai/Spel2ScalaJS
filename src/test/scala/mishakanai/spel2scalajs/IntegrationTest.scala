@@ -28,13 +28,16 @@ object JSIntegrationTest extends TestSuite {
       assert(result == 3)
     }
 
-    test("serialization/deserialization") {
-      val compiled = SpelEval.deserialize(
-        SpelEval
-          .compileExpression(
-            "{1, 2, {3, 4}}[2][0]"
-          )("serialize")
-          .asInstanceOf[js.Function0[ByteBuffer]]()
+    test("toJson/fromJson") {
+      val json = SpelEval
+        .compileExpression(
+          "{1, 2, {3, 4}}[2][0]"
+        )("toJson")
+        .asInstanceOf[js.Function0[String]]()
+
+      println(json)
+      val compiled = SpelEval.fromJson(
+        json
       )
       // val result = compiled
       val t = compiled("type")

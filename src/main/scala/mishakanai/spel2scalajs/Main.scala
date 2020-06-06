@@ -7,8 +7,8 @@ import scala.scalajs.js.Dictionary
 import js.JSConverters._
 import js.typeOf
 import fastparse.parse
-import boopickle.Default._
 import java.nio.ByteBuffer
+import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 
 @JSExportTopLevel("Spel2ScalaJs")
 object SpelEval {
@@ -68,8 +68,8 @@ object SpelEval {
       () => {
         Meta.getExpansions(r, true).toJSArray
       }
-    val serialize: js.Function0[ByteBuffer] = () => {
-      Pickle.intoBytes(r)
+    val toJson: js.Function0[String] = () => {
+      r.asJson.noSpaces
     }
     val evaluate: js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
       (
@@ -105,7 +105,7 @@ object SpelEval {
       "evaluate" -> evaluate,
       "getExpansions" -> getExpansions,
       "getExpansionsWithAll" -> getExpansionsWithAll,
-      "serialize" -> serialize
+      "toJson" -> toJson
     )
   }
 
@@ -125,20 +125,18 @@ object SpelEval {
       (r: ExpressionSymbol, _) => loadAst(r)
     )
   }
+
   @JSExport
-  def deserialize(
-      byteBuffer: ByteBuffer
+  def fromJson(
+      json: String
   ): js.Dictionary[Any] = {
-    try {
-      val ast = Unpickle[ExpressionSymbol].fromBytes(byteBuffer)
-      loadAst(ast)
-    } catch {
-      case e: RuntimeException => {
+    decode[ExpressionSymbol](json).fold(
+      e =>
         js.Dictionary[Any](
           "type" -> "parse_failure",
           "msg" -> e.getMessage()
-        )
-      }
-    }
+        ),
+      loadAst(_)
+    )
   }
 }
