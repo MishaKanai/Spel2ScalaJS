@@ -1,6 +1,6 @@
 {
   "name": "spel2scalajs",
-  "version": "0.0.31",
+  "version": "0.0.33",
   "description": "Spring Expression Language evaluator in scala.js",
   "main": "target/scala-2.13/spel2scalajs-opt.js",
   "types": "main.d.ts",

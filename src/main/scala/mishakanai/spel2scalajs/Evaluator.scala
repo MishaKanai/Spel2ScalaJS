@@ -168,8 +168,13 @@ class Evaluator(
       case StringLiteral(value) => JSCString(value)
       case Ternary(expression, ifTrue, ifFalse) =>
         evaluate(expression) match {
-          case JSCBoolean(value) => evaluate(ifTrue)
-          case _                 => evaluate(ifFalse)
+          case JSCBoolean(value) => evaluate(if (value) ifTrue else ifFalse)
+          case JSCNull()         => evaluate(ifFalse)
+          case r => {
+            throw new RuntimeException(
+              s"Unexpected non boolean/null in Ternary conditional expression: $r"
+            )
+          }
         }
       case VariableReference(variableName) => {
         val valueInFuncsAndVars = getValueInProvidedFuncsAndVars(variableName)

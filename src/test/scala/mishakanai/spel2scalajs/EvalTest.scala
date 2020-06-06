@@ -416,5 +416,23 @@ object EvalTest extends TestSuite {
       )
       assert(result2 == true)
     }
+    //
+    test("test ternary") {
+
+      val result2 = SpelEval.evaluateFast(
+        // currentUserHasRole('ROLE_REGISTERED_USER')
+        """
+        currentUserHasRole('ROLE_SUPER') ? false : true
+        """,
+        js.eval(
+            "({" +
+              "currentUserHasRole: (arg) => false" +
+              "})"
+          )
+          .asInstanceOf[js.Dynamic],
+        js.eval("({})").asInstanceOf[js.Dynamic]
+      )
+      assert(result2 == true)
+    }
   }
 }
