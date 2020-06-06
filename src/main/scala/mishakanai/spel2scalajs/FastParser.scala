@@ -103,14 +103,14 @@ object ExpressionParser {
           maybeRest match {
             case Some(r) =>
               r match {
-                case (ifTrue, ifFalse) =>
+                case (ifTrue: ExpressionSymbol, ifFalse: ExpressionSymbol) =>
                   Ternary(
                     condition,
-                    ifTrue.asInstanceOf[ExpressionSymbol],
-                    ifFalse.asInstanceOf[ExpressionSymbol]
+                    ifTrue,
+                    ifFalse
                   )
-                case (ifFalse) =>
-                  Elvis(condition, ifFalse.asInstanceOf[ExpressionSymbol])
+                case (ifFalse: ExpressionSymbol) =>
+                  Elvis(condition, ifFalse)
               }
             case None => condition
           }

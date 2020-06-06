@@ -13,7 +13,7 @@ class Evaluator(
       evaluatedArguments: List[js.Any]
   ): JSContext = {
     val jsResult = fn(evaluatedArguments.toSeq: _*)
-    DynamicJsParser.parseDynamicJs(jsResult.asInstanceOf[js.Dynamic])
+    DynamicJsParser.parseDynamicJs(jsResult)
   }
 
   def applyStringBinOp(
