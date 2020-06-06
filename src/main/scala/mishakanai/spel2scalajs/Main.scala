@@ -6,7 +6,9 @@ import scala.scalajs.js.JSON
 import scala.scalajs.js.Dictionary
 import js.JSConverters._
 import js.typeOf
-import fastparse._
+import fastparse.parse
+import boopickle.Default._
+import java.nio.ByteBuffer
 
 @JSExportTopLevel("Spel2ScalaJs")
 object SpelEval {
@@ -17,7 +19,7 @@ object SpelEval {
       functionsAndVariables: js.Dynamic =
         js.Dictionary().asInstanceOf[js.Dynamic]
   ): js.Dynamic = {
-    val result = parse(input, ExpressionParser.parse(_))
+    val result = fastparse.parse(input, ExpressionParser.parse(_))
     null
   }
   @JSExport
@@ -27,7 +29,8 @@ object SpelEval {
       functionsAndVariables: js.Dynamic =
         js.Dictionary().asInstanceOf[js.Dynamic]
   ): js.Dynamic = {
-    val result = parse(input, ExpressionParser.parse(_))
+    val result = fastparse
+      .parse(input, ExpressionParser.parse(_))
       .fold((msg, i, extra) => None, (r: ExpressionSymbol, _) => Some(r))
       .map(p => {
         val ctxt = DynamicJsParser.parseDynamicJs(context)
@@ -55,11 +58,62 @@ object SpelEval {
 
     }
    */
+
+  val loadAst = (r: ExpressionSymbol) => {
+    val getExpansions: js.Function0[js.Array[String]] =
+      () => {
+        Meta.getExpansions(r).toJSArray
+      }
+    val getExpansionsWithAll: js.Function0[js.Array[String]] =
+      () => {
+        Meta.getExpansions(r, true).toJSArray
+      }
+    val serialize: js.Function0[ByteBuffer] = () => {
+      Pickle.intoBytes(r)
+    }
+    val evaluate: js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
+      (
+          context: js.Dynamic,
+          functionsAndVariables: js.Dynamic
+      ) =>
+        {
+          val ctxt = DynamicJsParser.parseDynamicJs(context)
+          val fnsAndVars =
+            DynamicJsParser.parseDynamicJs(functionsAndVariables)
+          try {
+            val result = new Evaluator(ctxt, fnsAndVars).evaluate(r)
+            val asJs = DynamicJsParser
+              .backToDynamic(result)
+              .asInstanceOf[js.Dynamic]
+            js.Dictionary[Any](
+              "type" -> "evaluation_success",
+              "result" -> asJs
+            )
+          } catch {
+            case e: RuntimeException => {
+              val msg = e.getMessage()
+              js.Dictionary[Any](
+                "type" -> "evaluation_failure",
+                "msg" -> msg
+              )
+            }
+          }
+        }
+    }
+    js.Dictionary[Any](
+      "type" -> "parse_success",
+      "evaluate" -> evaluate,
+      "getExpansions" -> getExpansions,
+      "getExpansionsWithAll" -> getExpansionsWithAll,
+      "serialize" -> serialize
+    )
+  }
+
   @JSExport
   def compileExpression(
       input: String
   ): js.Dictionary[Any] = {
-    val c = parse(input, ExpressionParser.parse(_))
+    val c = fastparse.parse(input, ExpressionParser.parse(_))
 
     c.fold(
       (msg, i, extra) =>
@@ -68,52 +122,23 @@ object SpelEval {
           "msg" -> msg,
           "i" -> i
         ),
-      (r: ExpressionSymbol, _) => {
-        val getExpansions: js.Function0[js.Array[String]] =
-          () => {
-            Meta.getExpansions(r).toJSArray
-          }
-        val getExpansionsWithAll: js.Function0[js.Array[String]] =
-          () => {
-            Meta.getExpansions(r, true).toJSArray
-          }
-        val evaluate
-            : js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
-          (
-              context: js.Dynamic,
-              functionsAndVariables: js.Dynamic
-          ) =>
-            {
-              val ctxt = DynamicJsParser.parseDynamicJs(context)
-              val fnsAndVars =
-                DynamicJsParser.parseDynamicJs(functionsAndVariables)
-              try {
-                val result = new Evaluator(ctxt, fnsAndVars).evaluate(r)
-                val asJs = DynamicJsParser
-                  .backToDynamic(result)
-                  .asInstanceOf[js.Dynamic]
-                js.Dictionary[Any](
-                  "type" -> "evaluation_success",
-                  "result" -> asJs
-                )
-              } catch {
-                case e: RuntimeException => {
-                  val msg = e.getMessage()
-                  js.Dictionary[Any](
-                    "type" -> "evaluation_failure",
-                    "msg" -> msg
-                  )
-                }
-              }
-            }
-        }
+      (r: ExpressionSymbol, _) => loadAst(r)
+    )
+  }
+  @JSExport
+  def deserialize(
+      byteBuffer: ByteBuffer
+  ): js.Dictionary[Any] = {
+    try {
+      val ast = Unpickle[ExpressionSymbol].fromBytes(byteBuffer)
+      loadAst(ast)
+    } catch {
+      case e: RuntimeException => {
         js.Dictionary[Any](
-          "type" -> "parse_success",
-          "evaluate" -> evaluate,
-          "getExpansions" -> getExpansions,
-          "getExpansionsWithAll" -> getExpansionsWithAll
+          "type" -> "parse_failure",
+          "msg" -> e.getMessage()
         )
       }
-    )
+    }
   }
 }
