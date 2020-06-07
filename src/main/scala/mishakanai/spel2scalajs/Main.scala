@@ -82,8 +82,7 @@ object SpelEval {
           functionsAndVariables: js.Dynamic
       ) =>
         {
-          val strippedContext = DynamicJsParser.stripFunctionsExcept(context, methodAndFunctionNames);
-          val ctxt = DynamicJsParser.parseDynamicJs(strippedContext)
+          val ctxt = DynamicJsParser.parseDynamicJs(context)
           val fnsAndVars =
             DynamicJsParser.parseDynamicJs(functionsAndVariables)
           try {
