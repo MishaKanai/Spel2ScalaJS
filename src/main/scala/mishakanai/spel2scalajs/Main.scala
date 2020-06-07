@@ -75,7 +75,7 @@ object SpelEval {
     val toJson: js.Function0[String] = () => {
       r.asJson.noSpaces
     }
-    val methodAndFunctionNames = Meta.getMethodsAndFunctions(r)
+    val methodAndFunctionNames = Meta.getMethodsAndFunctions(r).distinct
     val evaluate: js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
       (
           context: js.Dynamic,
