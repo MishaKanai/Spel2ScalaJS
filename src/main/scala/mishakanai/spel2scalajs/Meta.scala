@@ -3,6 +3,51 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable
 
 object Meta {
+  def getMethodsAndFunctions(
+    outerAst: ExpressionSymbol,
+  ): List[String] = {
+    outerAst match {
+      case StringLiteral(value) => List()
+      case Ternary(expression, ifTrue, ifFalse) => getMethodsAndFunctions(expression) ::: getMethodsAndFunctions(ifTrue) ::: getMethodsAndFunctions(ifFalse)
+      case VariableReference(variableName) => List()
+      case SelectionFirst(nullSafeNavigation, expression) => getMethodsAndFunctions(expression)
+      case SelectionLast(nullSafeNavigation, expression) => getMethodsAndFunctions(expression)
+      case SelectionAll(nullSafeNavigation, expression) => getMethodsAndFunctions(expression)
+      case PropertyReference(nullSafeNavigation, propertyName) => List()
+      case Projection(nullSafeNavigation, expression) => getMethodsAndFunctions(expression)
+      case OpPower(base, expression) => getMethodsAndFunctions(expression)
+      case OpPlus(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpOr(left, right) =>  getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpNot(expression) => getMethodsAndFunctions(expression)
+      case OpNE(left, right) =>  getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpMultiply(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpModulus(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpMinus(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpMatches(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpLT(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpLE(left, right) =>getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpGT(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpGE(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpEQ(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpDivide(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case OpAnd(left, right) => getMethodsAndFunctions(left) ::: getMethodsAndFunctions(right)
+      case Negative(value) => getMethodsAndFunctions(value)
+      case NumberLiteral(value) => List()
+      case NullLiteral() => List()
+      case MethodReference(nullSafeNavigation, methodName, args) => methodName :: args.flatMap(getMethodsAndFunctions(_))
+      case FunctionReference(nullSafeNavigation, functionName, args) => functionName :: args.flatMap(getMethodsAndFunctions(_))
+      case InlineMap(elements) => elements.toList.flatMap(t =>
+            t match {
+              case (key, ast) => getMethodsAndFunctions(ast)
+            }
+          )
+      case InlineList(elements) => elements.flatMap(getMethodsAndFunctions(_))
+      case Indexer(nullSafeNavigation, index) => getMethodsAndFunctions(index)
+      case Elvis(expression, ifFalse) => getMethodsAndFunctions(expression) ::: getMethodsAndFunctions(ifFalse)
+      case CompoundExpression(expressionComponents) => expressionComponents.flatMap(getMethodsAndFunctions(_))
+      case BooleanLiteral(value) => List()
+    }
+  }
   def getExpansions(
       outerAst: ExpressionSymbol,
       includeAllExpansion: Boolean = false
