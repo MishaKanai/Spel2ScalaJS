@@ -34,12 +34,10 @@ object SpelEval {
       .parse(input, ExpressionParser.parse(_))
       .fold((msg, i, extra) => None, (r: ExpressionSymbol, _) => Some(r))
       .map(p => {
-        val ctxt = DynamicJsParser.parseDynamicJs(context)
-        val fnsAndVars = DynamicJsParser.parseDynamicJs(functionsAndVariables)
-        new Evaluator(ctxt, fnsAndVars).evaluate(p)
+        new EvaluatorToJS(context, functionsAndVariables).evaluate(p)
       })
     if (result.isDefined)
-      return DynamicJsParser.backToDynamic(result.get).asInstanceOf[js.Dynamic]
+      return result.get
     else {
       throw new RuntimeException("Failed to Parse Spel expression")
     }
@@ -76,23 +74,20 @@ object SpelEval {
       r.asJson.noSpaces
     }
     val methodAndFunctionNames = Meta.getMethodsAndFunctions(r).distinct
-    val evaluate: js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
+    val evaluateToJS
+        : js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
       (
           context: js.Dynamic,
           functionsAndVariables: js.Dynamic
       ) =>
         {
-          val ctxt = DynamicJsParser.parseDynamicJs(context)
-          val fnsAndVars =
-            DynamicJsParser.parseDynamicJs(functionsAndVariables)
           try {
-            val result = new Evaluator(ctxt, fnsAndVars).evaluate(r)
-            val asJs = DynamicJsParser
-              .backToDynamic(result)
-              .asInstanceOf[js.Dynamic]
+            val resultAsJs =
+              new EvaluatorToJS(context, functionsAndVariables).evaluate(r)
+
             js.Dictionary[Any](
               "type" -> "evaluation_success",
-              "result" -> asJs
+              "result" -> resultAsJs
             )
           } catch {
             case e: RuntimeException => {
@@ -105,9 +100,38 @@ object SpelEval {
           }
         }
     }
+    // val evaluate: js.Function2[js.Dynamic, js.Dynamic, js.Dictionary[Any]] = {
+    //   (
+    //       context: js.Dynamic,
+    //       functionsAndVariables: js.Dynamic
+    //   ) =>
+    //     {
+    //       val ctxt = DynamicJsParser.parseDynamicJs(context)
+    //       val fnsAndVars =
+    //         DynamicJsParser.parseDynamicJs(functionsAndVariables)
+    //       try {
+    //         val result = new Evaluator(ctxt, fnsAndVars).evaluate(r)
+    //         val asJs = DynamicJsParser
+    //           .backToDynamic(result)
+    //           .asInstanceOf[js.Dynamic]
+    //         js.Dictionary[Any](
+    //           "type" -> "evaluation_success",
+    //           "result" -> asJs
+    //         )
+    //       } catch {
+    //         case e: RuntimeException => {
+    //           val msg = e.getMessage()
+    //           js.Dictionary[Any](
+    //             "type" -> "evaluation_failure",
+    //             "msg" -> msg
+    //           )
+    //         }
+    //       }
+    //     }
+    // }
     js.Dictionary[Any](
       "type" -> "parse_success",
-      "evaluate" -> evaluate,
+      "evaluate" -> evaluateToJS,
       "getExpansions" -> getExpansions,
       "getExpansionsWithAll" -> getExpansionsWithAll,
       "methodsAndFunctions" -> methodAndFunctionNames.toJSArray,

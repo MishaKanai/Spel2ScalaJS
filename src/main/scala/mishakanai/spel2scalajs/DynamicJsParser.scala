@@ -18,18 +18,34 @@ case class ScalaFunction3(function: Function3[Any, Any, Any, Any])
     extends JSContext
 
 object DynamicJsParser {
-  def stripFunctionsExcept(dynamic: js.Dynamic, allowed: List[String]): js.Dynamic = {
-      if (typeOf(dynamic) == "object" & dynamic != null) {
-          val asString = dynamic.asInstanceOf[scala.scalajs.js.Object].toString()
-          if (asString == "[object Object]") {
-            val dict = dynamic.asInstanceOf[js.Dictionary[js.Dynamic]]
-            dict
-              .toMap[String, js.Dynamic]
-              .filter({ case (k, v) => (typeOf(dynamic) != "function" || allowed.contains(k)) }).toJSDictionary
-          }
+  def stripFunctionsExcept(
+      dynamic: js.Dynamic,
+      allowed: List[String]
+  ): js.Dynamic = {
+    if (typeOf(dynamic) == "object" & dynamic != null) {
+      val asString = dynamic.asInstanceOf[scala.scalajs.js.Object].toString()
+      if (asString == "[object Object]") {
+        val dict = dynamic.asInstanceOf[js.Dictionary[js.Dynamic]]
+        dict
+          .toMap[String, js.Dynamic]
+          .filter({
+            case (k, v) =>
+              (typeOf(dynamic) != "function" || allowed.contains(k))
+          })
+          .toJSDictionary
       }
-      return dynamic;
+    }
+    return dynamic;
   }
+
+  def isJSDict(dynamic: js.Dynamic): Boolean = {
+    if (typeOf(dynamic) == "object" && dynamic != null) {
+      val asString = dynamic.asInstanceOf[scala.scalajs.js.Object].toString()
+      return asString == "[object Object]"
+    }
+    return false
+  }
+
   def parseDynamicJs(dynamic: js.Dynamic): JSContext = {
     if (dynamic.isInstanceOf[Float]) {
       return JSCFloat(dynamic.asInstanceOf[Float]);
