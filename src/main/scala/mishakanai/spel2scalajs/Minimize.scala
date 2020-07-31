@@ -275,18 +275,23 @@ object Minimize {
       // lets find the one with the highest count, consider it our next replacement,
       // replace all instances, and recurse (or continue iteration.)
       val added = Minimize.minimize(_exprMap)
-      val (maxAstStr, (maxCount, astToReplace)) =
-        added.reduce((prev, curr) =>
-          if (curr._2._1 > prev._2._1) curr else prev
-        )
-      if (maxCount == 1) {
-        _exprMap;
+
+      if (added.isEmpty) {
+        _exprMap
       } else {
-        val outputAst = _exprMap.transform((k, ast) =>
-          replaceInAst(ast, astToReplace, replacementKeys(i))
-        )
-        addedVariables.addOne((replacementKeys(i), astToReplace))
-        replaceIfPossible(outputAst, i + 1)
+        val (maxAstStr, (maxCount, astToReplace)) =
+          added.reduce((prev, curr) =>
+            if (curr._2._1 > prev._2._1) curr else prev
+          )
+        if (maxCount == 1) {
+          _exprMap;
+        } else {
+          val outputAst = _exprMap.transform((k, ast) =>
+            replaceInAst(ast, astToReplace, replacementKeys(i))
+          )
+          addedVariables.addOne((replacementKeys(i), astToReplace))
+          replaceIfPossible(outputAst, i + 1)
+        }
       }
     }
 

@@ -47,5 +47,23 @@ object MinimizeExpressionsTest extends TestSuite {
         )
       )
     }
+
+    test("js") {
+      val jsresult = SpelEval.getMinimalExpressions(
+        js.eval(
+            """({ "f": "f" })"""
+          )
+          .asInstanceOf[js.Dictionary[String]]
+      )
+      val r = jsresult.toList.map(e => e.toMap)
+      assert(
+        r == List(
+          Map(),
+          Map(
+            "f" -> "f"
+          )
+        )
+      )
+    }
   }
 }
