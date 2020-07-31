@@ -2,7 +2,7 @@ package mishakanai.spel2scalajs
 import fastparse._
 
 object Quote {
-  def _quote(from: Char) {
+  def _quote(from: Char): (String) => String = {
     def quote(s: String) =
       s.map {
           case '"'  => if (from == '"') "\\\"" else '"'
