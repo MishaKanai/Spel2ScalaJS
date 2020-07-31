@@ -1,8 +1,26 @@
 package mishakanai.spel2scalajs
-
+import fastparse._
 import scala.collection.mutable
 
 object Minimize {
+
+  def minimizeExpressions(expMap: Map[String, String]): (
+      Map[String, String],
+      Map[String, String]
+  ) = {
+    val m: Map[String, ExpressionSymbol] =
+      expMap.transform[ExpressionSymbol]((k, v) => {
+        val Parsed.Success(result, _) =
+          fastparse.parse(v, ExpressionParser.expression(_))
+        result
+      })
+    val (added, transformed) = getReplacements(m)
+    (
+      added.transform((k, ast) => AstToString.astToString(ast)),
+      transformed.transform((k, ast) => AstToString.astToString(ast))
+    )
+  }
+
   def minimize(
       astMap: Map[String, ExpressionSymbol]
   ): mutable.Map[String, (Int, ExpressionSymbol)] = {
