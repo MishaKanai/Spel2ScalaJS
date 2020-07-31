@@ -25,5 +25,27 @@ object MinimizeExpressionsTest extends TestSuite {
         )
       )
     }
+
+    test("js") {
+      val jsresult = SpelEval.getMinimalExpressions(
+        js.eval(
+            """({ "field1": " a + b ? a + b : c - d ", "field2": " c - d " })"""
+          )
+          .asInstanceOf[js.Dictionary[String]]
+      )
+      val r = jsresult.toList.map(e => e.toMap)
+      assert(
+        r == List(
+          Map(
+            "$a" -> "c - d",
+            "$b" -> "a + b"
+          ),
+          Map(
+            "field1" -> "$b ? $b : $a",
+            "field2" -> "$a"
+          )
+        )
+      )
+    }
   }
 }

@@ -185,4 +185,12 @@ object SpelEval {
       loadAst(_)
     )
   }
+
+  @JSExport
+  def getMinimalExpressions(
+      exps: js.Dictionary[String]
+  ): js.Array[js.Dictionary[String]] = {
+    val (added, rest) = Minimize.minimizeExpressions(exps.toMap)
+    js.Array(added.toJSDictionary, rest.toJSDictionary)
+  }
 }
