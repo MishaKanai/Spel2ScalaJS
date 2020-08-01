@@ -161,10 +161,12 @@ class EvaluatorToJS(
             expression,
             false
           )
-        else
+        else {
+          val astHead = DynamicJsParser.parseDynamicJs(head)
           throw new RuntimeException(
-            s"Cannot run selectionfirst expression on non-array: $head"
+            s"Cannot run selectionfirst expression on non-array: $astHead"
           )
+        }
       }
       case SelectionLast(nullSafeNavigation, expression) => {
         val head = stack.head;
@@ -175,10 +177,12 @@ class EvaluatorToJS(
             expression,
             true
           )
-        else
+        else {
+          val astHead = DynamicJsParser.parseDynamicJs(head)
           throw new RuntimeException(
-            s"Cannot run selectionlast expression on non-array: $head"
+            s"Cannot run selectionlast expression on non-array: $astHead"
           )
+        }
       }
       case SelectionAll(nullSafeNavigation, expression) => {
         val head = stack.head;
@@ -199,8 +203,9 @@ class EvaluatorToJS(
             })
             .asInstanceOf[js.Dynamic]
         else {
+          val astHead = DynamicJsParser.parseDynamicJs(head)
           throw new RuntimeException(
-            s"Cannot run selectionall expression on non-array: $head"
+            s"Cannot run selectionall expression on non-array: $astHead"
           )
         }
       }
@@ -212,8 +217,9 @@ class EvaluatorToJS(
           if (nullSafeNavigation) {
             null
           } else {
+            val astStack = stack.map(DynamicJsParser.parseDynamicJs(_))
             throw new RuntimeException(
-              s"Null Pointer Exception: Property $propertyName not found in context $stack"
+              s"Null Pointer Exception: Property $propertyName not found in context $astStack"
             )
           }
 
@@ -234,8 +240,9 @@ class EvaluatorToJS(
             })
             .asInstanceOf[js.Dynamic]
         else {
+          val astHead = DynamicJsParser.parseDynamicJs(head)
           throw new RuntimeException(
-            s"Cannot run projection expression on non-array: $head"
+            s"Cannot run projection expression on non-array: $astHead"
           )
         }
       }
@@ -438,10 +445,12 @@ class EvaluatorToJS(
               head
                 .asInstanceOf[js.Array[js.Dynamic]](n.toInt)
                 .asInstanceOf[js.Dynamic]
-            else
+            else {
+              val astHead = DynamicJsParser.parseDynamicJs(head)
               throw new RuntimeException(
-                s"Not supported: indexing into $head with $indexSymbol"
+                s"Not supported: indexing into $astHead with $indexSymbol"
               );
+            }
           }
           case StringLiteral(s) => {
             if (DynamicJsParser.isJSDict(head))
@@ -449,21 +458,26 @@ class EvaluatorToJS(
                 .asInstanceOf[js.Dictionary[js.Dynamic]]
                 .get(s) match {
                 case Some(value) => value
-                case None =>
+                case None => {
+                  val astHead = DynamicJsParser.parseDynamicJs(head)
                   throw new RuntimeException(
-                    s"key $s not found in dictionary $head"
+                    s"key $s not found in dictionary $astHead"
                   );
+                }
               }
             else {
+              val astHead = DynamicJsParser.parseDynamicJs(head)
               throw new RuntimeException(
-                s"Not supported: indexing into $head with $indexSymbol"
+                s"Not supported: indexing into $astHead with $indexSymbol"
               );
             }
           }
-          case _ =>
+          case _ => {
+            val astHead = DynamicJsParser.parseDynamicJs(head)
             throw new RuntimeException(
-              s"Not supported: indexing into $head with $indexSymbol"
+              s"Not supported: indexing into $astHead with $indexSymbol"
             );
+          }
         }
         value
       }
