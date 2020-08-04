@@ -24,8 +24,6 @@ object MinimizeTest extends TestSuite {
         .map(t => (t._1, t._2._1))
       assert(
         minimized == HashMap(
-          MethodReference(false, "foo", List(PropertyReference(false, "c"))).toString -> 1,
-          OpPlus(PropertyReference(false, "a"), PropertyReference(false, "b")).toString -> 1,
           OpGT(
             OpPlus(
               PropertyReference(false, "a"),
@@ -51,31 +49,13 @@ object MinimizeTest extends TestSuite {
       val minimized = Minimize
         .minimize(
           HashMap[String, ExpressionSymbol](
+            "bar" -> compile("a + b"),
             "foo" -> compile("a + b > a + b ? foo(a + b) : a + b / a + b ")
           )
         )
         .map(t => (t._1, t._2._1))
       assert(
         minimized == HashMap(
-          OpPlus(
-            PropertyReference(false, "a"),
-            OpDivide(
-              PropertyReference(false, "b"),
-              PropertyReference(false, "a")
-            )
-          ).toString -> 1,
-          OpPlus(
-            OpPlus(
-              PropertyReference(false, "a"),
-              OpDivide(
-                PropertyReference(false, "b"),
-                PropertyReference(false, "a")
-              )
-            ),
-            PropertyReference(false, "b")
-          ).toString -> 1,
-          OpDivide(PropertyReference(false, "b"), PropertyReference(false, "a")).toString -> 1,
-          OpPlus(PropertyReference(false, "a"), PropertyReference(false, "b")).toString -> 3,
           Ternary(
             OpGT(
               OpPlus(
@@ -115,16 +95,7 @@ object MinimizeTest extends TestSuite {
             ),
             OpPlus(PropertyReference(false, "a"), PropertyReference(false, "b"))
           ).toString -> 1,
-          MethodReference(
-            false,
-            "foo",
-            List(
-              OpPlus(
-                PropertyReference(false, "a"),
-                PropertyReference(false, "b")
-              )
-            )
-          ).toString -> 1
+          OpPlus(PropertyReference(false, "a"), PropertyReference(false, "b")).toString -> 4
         )
       )
     }
@@ -196,6 +167,47 @@ object MinimizeTest extends TestSuite {
             )
           )
         ))
+      )
+    }
+
+    test("Test the reduction with lookupEntityDataDn") {
+      val minimized = Minimize
+        .getReplacements(
+          HashMap[String, ExpressionSymbol](
+            "foo" -> compile(
+              "userId && #lookupEntityData('User', userId, 'email') != null "
+            ),
+            "bar" -> compile(
+              "userId ? #lookupEntityData('User', userId, 'email') : null  "
+            )
+          )
+        )
+
+      val ymap = Map[String, ExpressionSymbol](
+        "$a" -> FunctionReference(
+          false,
+          "lookupEntityData",
+          StringLiteral("User") :: PropertyReference(false, "userId") :: StringLiteral(
+            "email"
+          ) :: Nil
+        )
+      )
+      val xmap = Map[String, ExpressionSymbol](
+        "foo" -> OpAnd(
+          PropertyReference(false, "userId"),
+          OpNE(
+            PropertyReference(false, "$a"),
+            NullLiteral()
+          )
+        ),
+        "bar" -> Ternary(
+          PropertyReference(false, "userId"),
+          PropertyReference(false, "$a"),
+          NullLiteral()
+        )
+      )
+      assert(
+        minimized == (ymap, xmap)
       )
     }
   }
