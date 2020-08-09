@@ -87,7 +87,7 @@ object LiteralsParser {
 
   def digit[_: P] = P(CharIn("0-9"))
 
-  def identifier[_: P] = P((letter | "_" | "$") ~ (letter | digit | "_").rep)
+  def identifier[_: P] = P((letter | "_" | "$") ~ (letter | digit | "_" | "$").rep)
 
 }
 
